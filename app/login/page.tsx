@@ -6,46 +6,65 @@ import { useRouter } from 'next/navigation'
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [mode, setMode] = useState<'login' | 'signup'>('login')
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [message, setMessage] = useState('')
   const supabase = createClient()
   const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError('')
-    if (mode === 'login') {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) setError(error.message)
-      else router.push('/')
-    } else {
+    setMessage('')
+    if (isSignUp) {
       const { error } = await supabase.auth.signUp({ email, password })
-      if (error) setError(error.message)
-      else {
-        setError('Check your email to confirm, then sign in.')
-        setMode('login')
-      }
+      if (error) setMessage(error.message)
+      else setMessage('Check your email to confirm your account')
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) setMessage(error.message)
+      else router.push('/')
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <form onSubmit={handleSubmit} className="bg-white p-8 shadow w-80 space-y-4">
-        <h1 className="text-xl font-semibold">{mode === 'login' ? 'LumenForge Login' : 'Create Account'}</h1>
-        <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} className="w-full p-2 border" required />
-        <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} className="w-full p-2 border" required />
-        {error && <p className="text-red-600 text-sm">{error}</p>}
-        <button type="submit" className="w-full bg-black text-white p-2">
-          {mode === 'login' ? 'Sign In' : 'Create Account'}
-        </button>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-sm p-8 shadow-sm">
+        <h1 className="text-2xl font-semibold text-gray-900 mb-6 text-center">LumenForge</h1>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              className="w-full border border-gray-300 px-3 py-2 text-gray-900 bg-white"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              className="w-full border border-gray-300 px-3 py-2 text-gray-900 bg-white"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white py-2 font-medium"
+          >
+            {isSignUp ? 'Create Account' : 'Sign In'}
+          </button>
+        </form>
+        {message && <p className="mt-4 text-sm text-gray-700 text-center">{message}</p>}
         <button
-          type="button"
-          onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError('') }}
-          className="w-full text-sm text-gray-600 underline"
+          onClick={() => setIsSignUp(!isSignUp)}
+          className="mt-4 w-full text-sm text-blue-600"
         >
-          {mode === 'login' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
+          {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Create one'}
         </button>
-      </form>
+      </div>
     </div>
   )
 }
