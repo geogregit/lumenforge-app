@@ -7,7 +7,7 @@ const tiles = [
   { name: 'Schedule Appointment', href: '/book', logo: 'https://cdn-icons-png.flaticon.com/512/3652/3652191.png' },
   { name: 'Clients', href: '/clients/list', logo: 'https://cdn-icons-png.flaticon.com/512/1077/1077063.png' },
   { name: 'Outlook', href: 'https://outlook.live.com/mail/', logo: 'https://img.icons8.com/color/96/microsoft-outlook-2019.png' },
-  { name: 'Teams', href: 'https://teams.microsoft.com/', logo: 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons/microsoft/microsoft-original.svg' },
+  { name: 'Teams', href: 'https://teams.microsoft.com/', logo: '/teams.png' },
   { name: 'Calendar', href: 'https://outlook.live.com/calendar/', logo: 'https://img.icons8.com/color/96/microsoft-outlook-2019.png' },
 ]
 
