@@ -27,15 +27,20 @@ export async function GET(request: NextRequest) {
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  await supabase.from('user_tokens').upsert({
+  const { error } = await supabase.from('user_tokens').upsert({
     user_id: userId,
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token,
     expires_at: new Date(Date.now() + (tokens.expires_in || 3600) * 1000).toISOString(),
   })
+
+  if (error) {
+    console.error(error)
+    return NextResponse.redirect(new URL('/?error=db_failed', request.url))
+  }
 
   return NextResponse.redirect(new URL('/?connected=outlook', request.url))
 }
