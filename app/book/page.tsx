@@ -10,7 +10,6 @@ export default function Book() {
   const [status, setStatus] = useState('')
   const [busyTimes, setBusyTimes] = useState<string[]>([])
   const [officeAddress, setOfficeAddress] = useState('')
-  const [dayAppointments, setDayAppointments] = useState<any[]>([])
   const supabase = createClient()
 
   const timeSlots: { label: string; value: string }[] = []
@@ -31,10 +30,7 @@ export default function Book() {
   }, [])
 
   useEffect(() => {
-    if (date) {
-      checkAvailability(date)
-      loadDayAppointments(date)
-    }
+    if (date) checkAvailability(date)
   }, [date])
 
   async function loadClients() {
@@ -47,12 +43,6 @@ export default function Book() {
     if (!user) return
     const { data } = await supabase.from('profiles').select('office_address').eq('id', user.id).single()
     if (data?.office_address) setOfficeAddress(data.office_address)
-  }
-
-  async function loadDayAppointments(selectedDate: string) {
-    // Placeholder: in a full version this would pull from calendar. For now we use clients that have addresses.
-    const withAddress = clients.filter(c => c.address)
-    setDayAppointments(withAddress)
   }
 
   async function checkAvailability(selectedDate: string) {
@@ -94,12 +84,27 @@ export default function Book() {
     } catch (err) { setStatus('Error') }
   }
 
+  const selected = clients.find(c => c.ID === selectedClient)
+  const showRoute = selected && selected.address && officeAddress && date && time
+
+  function getLeaveBy() {
+    if (!time) return ''
+    const [h, m] = time.split(':').map(Number)
+    const leave = new Date()
+    leave.setHours(h, m - 30, 0, 0) // simple 30 min buffer
+    let lh = leave.getHours()
+    const lm = leave.getMinutes().toString().padStart(2, '0')
+    const ampm = lh < 12 ? 'AM' : 'PM'
+    lh = lh % 12 || 12
+    return `${lh}:${lm} ${ampm}`
+  }
+
   function getMapLinks() {
-    if (!officeAddress || dayAppointments.length === 0) return null
-    const stops = dayAppointments.map(c => encodeURIComponent(c.address)).join('/')
+    if (!showRoute) return null
     const origin = encodeURIComponent(officeAddress)
-    const google = `https://www.google.com/maps/dir/${origin}/${stops}`
-    const apple = `https://maps.apple.com/?daddr=${stops}&saddr=${origin}`
+    const dest = encodeURIComponent(selected.address)
+    const google = `https://www.google.com/maps/dir/${origin}/${dest}`
+    const apple = `https://maps.apple.com/?saddr=${origin}&daddr=${dest}`
     return { google, apple }
   }
 
@@ -135,22 +140,19 @@ export default function Book() {
         {status && <p className="text-sm text-gray-700">{status}</p>}
       </form>
 
-      {date && officeAddress && dayAppointments.length > 0 && (
+      {showRoute && (
         <div className="mt-8 p-4 border bg-white">
-          <h2 className="font-medium text-gray-900 mb-3">Route for {date}</h2>
-          <p className="text-sm text-gray-600 mb-2">Office: {officeAddress}</p>
-          <ul className="text-sm text-gray-700 mb-3 space-y-1">
-            {dayAppointments.map(c => (
-              <li key={c.ID}>{c.name} — {c.address}</li>
-            ))}
-          </ul>
+          <h2 className="font-medium text-gray-900 mb-3">Route Preview</h2>
+          <p className="text-sm text-gray-700 mb-1"><strong>Client:</strong> {selected.name}</p>
+          <p className="text-sm text-gray-700 mb-1"><strong>Address:</strong> {selected.address}</p>
+          <p className="text-sm text-gray-700 mb-1"><strong>Appointment:</strong> {timeSlots.find(s => s.value === time)?.label}</p>
+          <p className="text-sm text-gray-900 mb-4"><strong>Leave office by:</strong> {getLeaveBy()}</p>
           {links && (
             <div className="flex flex-col gap-2">
               <a href={links.google} target="_blank" className="bg-blue-600 text-white text-center py-2">Open in Google Maps</a>
               <a href={links.apple} target="_blank" className="bg-gray-800 text-white text-center py-2">Open in Apple Maps</a>
             </div>
           )}
-          <p className="text-xs text-gray-500 mt-3">Leave-by times will be added once appointment details are connected.</p>
         </div>
       )}
     </div>
