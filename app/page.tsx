@@ -49,17 +49,17 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-10">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-4 sm:p-10">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
         <h1 className="text-2xl font-semibold text-gray-800">My Apps</h1>
         <button
           onClick={connectOutlook}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
+          className="bg-blue-600 text-white px-4 py-2 rounded text-sm sm:text-base"
         >
           {connected ? 'Outlook Connected' : 'Connect Outlook'}
         </button>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {tiles.map(tile => (
           <Link
             key={tile.name}
