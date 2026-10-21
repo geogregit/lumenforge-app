@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               onClick={() => setOpen(!open)}
               className="absolute -right-4 top-6 w-8 h-8 bg-black border border-gray-600 rounded-full flex items-center justify-center text-white hover:bg-gray-800 z-10 text-sm"
             >
-              {open ? '‹' : '›'}
+              {open ? '<' : '>'}
             </button>
             {open && (
               <div className="p-4 flex flex-col gap-2 h-full">
@@ -38,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <a href="https://outlook.live.com/mail/" target="_blank" className="p-2 hover:bg-gray-800 rounded">Outlook</a>
                 <a href="https://teams.microsoft.com/" target="_blank" className="p-2 hover:bg-gray-800 rounded">Teams</a>
                 <a href="https://outlook.live.com/calendar/" target="_blank" className="p-2 hover:bg-gray-800 rounded">Calendar</a>
+                <Link href="/settings" className="p-2 hover:bg-gray-800 rounded">Settings</Link>
                 <button onClick={logout} className="mt-auto p-2 text-left hover:bg-gray-800 rounded text-sm">Logout</button>
               </div>
             )}
