@@ -2,12 +2,20 @@
 import './globals.css'
 import Link from 'next/link'
 import { useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(true)
   const pathname = usePathname()
   const isLogin = pathname === '/login'
+  const supabase = createClient()
+  const router = useRouter()
+
+  async function logout() {
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
 
   return (
     <html lang="en">
@@ -21,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {open ? '‹' : '›'}
             </button>
             {open && (
-              <div className="p-4 flex flex-col gap-2">
+              <div className="p-4 flex flex-col gap-2 h-full">
                 <Link href="/" className="font-semibold text-lg mb-4">LumenForge</Link>
                 <Link href="/" className="p-2 hover:bg-gray-800 rounded">Dashboard</Link>
                 <Link href="/book" className="p-2 hover:bg-gray-800 rounded">Schedule Appointment</Link>
@@ -30,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <a href="https://outlook.live.com/mail/" target="_blank" className="p-2 hover:bg-gray-800 rounded">Outlook</a>
                 <a href="https://teams.microsoft.com/" target="_blank" className="p-2 hover:bg-gray-800 rounded">Teams</a>
                 <a href="https://outlook.live.com/calendar/" target="_blank" className="p-2 hover:bg-gray-800 rounded">Calendar</a>
+                <button onClick={logout} className="mt-auto p-2 text-left hover:bg-gray-800 rounded text-sm">Logout</button>
               </div>
             )}
           </aside>
