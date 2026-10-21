@@ -1,7 +1,7 @@
 'use client'
 import './globals.css'
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Link href="/" className="p-2 hover:bg-gray-800 rounded">Dashboard</Link>
                 <Link href="/book" className="p-2 hover:bg-gray-800 rounded">Schedule Appointment</Link>
                 <Link href="/clients/list" className="p-2 hover:bg-gray-800 rounded">Clients</Link>
-                <Link href="/clients" className="p-2 pl-6 hover:bg-gray-800 rounded text-sm">Add Clients</Link>
+                <Link href="/clients" className="p-2 pl-6 hover:bg-gray-800 rounded text-sm">Import Spreadsheet</Link>
                 <a href="https://outlook.live.com/mail/" target="_blank" className="p-2 hover:bg-gray-800 rounded">Outlook</a>
                 <a href="https://teams.microsoft.com/" target="_blank" className="p-2 hover:bg-gray-800 rounded">Teams</a>
                 <a href="https://outlook.live.com/calendar/" target="_blank" className="p-2 hover:bg-gray-800 rounded">Calendar</a>

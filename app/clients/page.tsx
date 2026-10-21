@@ -4,23 +4,9 @@ import { useState, useRef } from 'react'
 import * as XLSX from 'xlsx'
 
 export default function Clients() {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
   const [status, setStatus] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
-
-  async function addClient(e: React.FormEvent) {
-    e.preventDefault()
-    const { data: { user } } = await supabase.auth.getUser()
-    const { error } = await supabase.from('Clients').insert({ name, email, user_ID: user?.id })
-    if (error) alert(error.message)
-    else {
-      setName('')
-      setEmail('')
-      setStatus('Client added')
-    }
-  }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -70,13 +56,8 @@ export default function Clients() {
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6">
-      <h1 className="text-2xl mb-4">Clients</h1>
-      <form onSubmit={addClient} className="space-y-4 mb-8">
-        <input placeholder="Name" value={name} onChange={e => setName(e.target.value)} className="w-full p-2 border" required />
-        <input placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full p-2 border" required />
-        <button type="submit" className="w-full bg-green-600 text-white p-2">Add Client</button>
-      </form>
-      <div className="mb-8 p-4 border">
+      <h1 className="text-2xl mb-4">Import Spreadsheet</h1>
+      <div className="p-4 border">
         <h2 className="font-medium mb-2">Upload spreadsheet</h2>
         <p className="text-sm text-gray-600 mb-3">CSV or Excel (.xlsx) with columns: Name, Email (Phone and Address optional)</p>
         <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" onChange={handleFile} className="hidden" />
