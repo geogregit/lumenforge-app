@@ -7,6 +7,7 @@ export default function ClientList() {
   const [clients, setClients] = useState<any[]>([])
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [address, setAddress] = useState('')
   const [editing, setEditing] = useState<any>(null)
   const supabase = createClient()
 
@@ -19,12 +20,13 @@ export default function ClientList() {
 
   async function updateClient(e: React.FormEvent) {
     e.preventDefault()
-    const { error } = await supabase.from('Clients').update({ name, email }).eq('ID', editing.ID)
+    const { error } = await supabase.from('Clients').update({ name, email, address }).eq('ID', editing.ID)
     if (error) alert(error.message)
     else {
       setEditing(null)
       setName('')
       setEmail('')
+      setAddress('')
       loadClients()
     }
   }
@@ -40,32 +42,33 @@ export default function ClientList() {
     setEditing(client)
     setName(client.name)
     setEmail(client.email)
+    setAddress(client.address || '')
   }
 
   return (
     <div className="max-w-2xl mx-auto mt-10 p-6">
-      <h1 className="text-2xl mb-4">Clients</h1>
+      <h1 className="text-2xl mb-4 text-gray-900">Clients</h1>
       <Link href="/clients" className="inline-block mb-4 bg-green-600 text-white px-4 py-2">Add Clients</Link>
-
       {editing && (
-        <form onSubmit={updateClient} className="space-y-4 mb-8 p-4 border">
-          <h2 className="font-medium">Edit Client</h2>
-          <input placeholder="Name" value={name} onChange={e => setName(e.target.value)} className="w-full p-2 border" required />
-          <input placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full p-2 border" required />
+        <form onSubmit={updateClient} className="space-y-4 mb-8 p-4 border bg-white">
+          <h2 className="font-medium text-gray-900">Edit Client</h2>
+          <input placeholder="Name" value={name} onChange={e => setName(e.target.value)} className="w-full p-2 border text-gray-900" required />
+          <input placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full p-2 border text-gray-900" required />
+          <input placeholder="Address (optional)" value={address} onChange={e => setAddress(e.target.value)} className="w-full p-2 border text-gray-900" />
           <div className="flex gap-2">
             <button type="submit" className="flex-1 bg-green-600 text-white p-2">Update</button>
-            <button type="button" onClick={() => { setEditing(null); setName(''); setEmail('') }} className="px-4 border">Cancel</button>
+            <button type="button" onClick={() => { setEditing(null); setName(''); setEmail(''); setAddress('') }} className="px-4 border">Cancel</button>
           </div>
         </form>
       )}
-
       <div className="space-y-2">
         {clients.length === 0 && <p className="text-gray-500">No clients yet</p>}
         {clients.map(c => (
           <div key={c.ID} className="flex items-center justify-between p-3 border bg-white">
             <div>
-              <div className="font-medium">{c.name}</div>
+              <div className="font-medium text-gray-900">{c.name}</div>
               <div className="text-sm text-gray-600">{c.email}{c.phone ? ` • ${c.phone}` : ''}</div>
+              {c.address && <div className="text-sm text-gray-500">{c.address}</div>}
             </div>
             <div className="flex gap-3">
               <button onClick={() => startEdit(c)} className="text-blue-600 text-sm font-medium">Edit</button>
