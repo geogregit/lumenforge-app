@@ -1,4 +1,5 @@
 'use client'
+'use client'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
@@ -25,7 +26,12 @@ export default function Dashboard() {
     check()
   }, [])
 
-  function connectOutlook() {
+  async function connectOutlook() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      alert('Please sign in first')
+      return
+    }
     const clientId = process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID
     const redirectUri = process.env.NEXT_PUBLIC_MICROSOFT_REDIRECT_URI
     if (!clientId || !redirectUri) {
@@ -38,6 +44,7 @@ export default function Dashboard() {
       redirect_uri: redirectUri,
       scope: 'offline_access Mail.Send Calendars.ReadWrite User.Read',
       response_mode: 'query',
+      state: user.id,
     })
     window.location.href = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params}`
   }
