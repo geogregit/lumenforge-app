@@ -26,10 +26,16 @@ export default function Dashboard() {
   }, [])
 
   function connectOutlook() {
+    const clientId = process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID
+    const redirectUri = process.env.NEXT_PUBLIC_MICROSOFT_REDIRECT_URI
+    if (!clientId || !redirectUri) {
+      alert('Missing Microsoft config')
+      return
+    }
     const params = new URLSearchParams({
-      client_id: process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID || '',
+      client_id: clientId,
       response_type: 'code',
-      redirect_uri: process.env.NEXT_PUBLIC_MICROSOFT_REDIRECT_URI || '',
+      redirect_uri: redirectUri,
       scope: 'offline_access Mail.Send Calendars.ReadWrite User.Read',
       response_mode: 'query',
     })
