@@ -44,7 +44,15 @@ export default function Dashboard() {
 
   return (
     <div className="p-10">
-      <h1 className="text-2xl font-semibold text-gray-800 mb-8">My Apps</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-2xl font-semibold text-gray-800">My Apps</h1>
+        <button
+          onClick={connectOutlook}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          {connected ? 'Outlook Connected' : 'Connect Outlook'}
+        </button>
+      </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
         {tiles.map(tile => (
           <Link
@@ -57,14 +65,6 @@ export default function Dashboard() {
             <span className="text-sm font-medium text-gray-700">{tile.name}</span>
           </Link>
         ))}
-      </div>
-      <div className="mt-8">
-        <button
-          onClick={connectOutlook}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
-        >
-          {connected ? 'Outlook Connected' : 'Connect Outlook'}
-        </button>
       </div>
     </div>
   )
