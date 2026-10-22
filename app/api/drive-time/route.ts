@@ -7,18 +7,22 @@ export async function GET(request: Request) {
   const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY
 
   if (!from || !to || !key) {
-    return NextResponse.json({ error: 'Missing params' }, { status: 400 })
+    return NextResponse.json({ error: 'Missing params or key' }, { status: 400 })
   }
 
   try {
     const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(from)}&destinations=${encodeURIComponent(to)}&key=${key}`
     const res = await fetch(url)
     const data = await res.json()
+    console.log('Google response:', JSON.stringify(data))
     const element = data.rows?.[0]?.elements?.[0]
     if (element?.status === 'OK' && element.duration?.value) {
       return NextResponse.json({ minutes: Math.round(element.duration.value / 60) })
     }
-    return NextResponse.json({ error: element?.status || 'Failed' }, { status: 400 })
+    return NextResponse.json({ 
+      error: element?.status || data.status || 'Failed',
+      details: data.error_message || data.status 
+    }, { status: 400 })
   } catch (err) {
     return NextResponse.json({ error: 'Request failed' }, { status: 500 })
   }
