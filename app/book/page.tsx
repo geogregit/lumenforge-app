@@ -12,6 +12,7 @@ export default function Book() {
   const [officeAddress, setOfficeAddress] = useState('')
   const [driveStatus, setDriveStatus] = useState('')
   const [routeStops, setRouteStops] = useState<any[]>([])
+  const [sortBy, setSortBy] = useState<'closest' | 'furthest'>('closest')
   const supabase = createClient()
 
   const timeSlots: { label: string; value: string }[] = []
@@ -42,7 +43,7 @@ export default function Book() {
       setRouteStops([])
       setDriveStatus('')
     }
-  }, [selectedClients, officeAddress, clients, time])
+  }, [selectedClients, officeAddress, clients, time, sortBy])
 
   async function loadClients() {
     const { data } = await supabase.from('Clients').select('*')
@@ -66,6 +67,15 @@ export default function Book() {
     }
   }
 
+  function formatTime(totalMins: number) {
+    const mins = ((totalMins % 1440) + 1440) % 1440
+    const h = Math.floor(mins / 60)
+    const m = mins % 60
+    const ampm = h < 12 ? 'AM' : 'PM'
+    const displayH = h % 12 || 12
+    return `${displayH}:${m.toString().padStart(2, '0')} ${ampm}`
+  }
+
   async function buildRouteDetails() {
     setDriveStatus('Calculating route...')
     const selected = clients.filter(c => selectedClients.includes(c.ID) && c.address)
@@ -74,47 +84,29 @@ export default function Book() {
       return
     }
 
-    let ordered = selected
-    if (selected.length > 1) {
-      try {
-        const res = await fetch('/api/drive-time', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ origin: officeAddress, destinations: selected.map(c => c.address) })
-        })
-        const data = await res.json()
-        if (data.order) {
-          ordered = data.order.map((i: number) => selected[i])
-        }
-      } catch {}
-    }
+    const withDist = await Promise.all(selected.map(async c => ({
+      ...c,
+      dist: await getSegmentMinutes(officeAddress, c.address)
+    })))
+    const ordered = [...withDist].sort((a, b) => sortBy === 'closest' ? a.dist - b.dist : b.dist - a.dist)
 
     const stops: any[] = []
     let currentLocation = officeAddress
-    let currentTime = time
     let [h, m] = time.split(':').map(Number)
+    let currentMins = h * 60 + m
 
     for (const client of ordered) {
       const mins = await getSegmentMinutes(currentLocation, client.address)
-      const departMins = h * 60 + m - mins - 10
-      const departH = Math.floor(departMins / 60)
-      const departM = departMins % 60
-      const ampm = departH < 12 ? 'AM' : 'PM'
-      const displayH = departH % 12 || 12
-
+      const departMins = currentMins - mins - 10
       stops.push({
         name: client.name,
         address: client.address,
         driveMin: mins,
-        departBy: `${displayH}:${departM.toString().padStart(2, '0')} ${ampm}`,
-        arriveAt: timeSlots.find(s => s.value === time)?.label || time
+        departBy: formatTime(departMins),
+        arriveAt: formatTime(currentMins)
       })
-
       currentLocation = client.address
-      // next stop starts after this appointment (assume 60 min)
-      const nextMins = h * 60 + m + 60
-      h = Math.floor(nextMins / 60)
-      m = nextMins % 60
+      currentMins = currentMins + 60
     }
 
     setRouteStops(stops)
@@ -222,6 +214,13 @@ export default function Book() {
                 {slot.label} {busyTimes.includes(slot.value) ? '(unavailable)' : ''}
               </option>
             ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Sort route by</label>
+          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className="w-full p-2 border text-gray-900 bg-white">
+            <option value="closest">Closest to office first</option>
+            <option value="furthest">Furthest from office first</option>
           </select>
         </div>
         <button type="submit" className="w-full bg-blue-600 text-white p-2">Book Appointment{selectedClients.length > 1 ? 's' : ''}</button>
