@@ -47,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="flex min-h-screen">
         {!isLogin && (
           <aside className={`bg-black text-white transition-all duration-300 fixed md:relative z-20 h-screen ${open ? 'w-64' : 'w-14'} flex flex-col`}>
-            <div className="p-3 flex items-center justify-between border-b border-gray-800">
+            <div className="p-3 flex items-center justify-between border-b border-gray-800 shrink-0">
               {open && <span className="font-bold text-lg">LumenForge</span>}
               <button onClick={() => setOpen(!open)} className="p-2 hover:bg-gray-800 rounded ml-auto">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -55,7 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </svg>
               </button>
             </div>
-            <nav className="flex-1 py-2 overflow-y-auto">
+            <nav className="flex-1 py-2 overflow-hidden">
               <Link href="/" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800" onClick={() => window.innerWidth < 768 && setOpen(false)}>
                 <span className="w-6 text-center text-lg">🏠</span>{open && <span>Dashboard</span>}
               </Link>
@@ -84,7 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <span className="w-6 text-center text-lg">⚙️</span>{open && <span>Settings</span>}
               </Link>
             </nav>
-            <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-3 hover:bg-gray-800 border-t border-gray-800">
+            <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-3 hover:bg-gray-800 border-t border-gray-800 shrink-0">
               <span className="w-6 text-center text-lg">🚪</span>{open && <span>Logout</span>}
             </button>
           </aside>

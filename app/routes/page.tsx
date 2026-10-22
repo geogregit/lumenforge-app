@@ -7,16 +7,18 @@ export default function Routes() {
   const [selected, setSelected] = useState<string[]>([])
   const [office, setOffice] = useState('')
   const [date, setDate] = useState('')
+  const [time, setTime] = useState('08:00')
   const [stops, setStops] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [sortBy, setSortBy] = useState<'closest' | 'furthest'>('closest')
   const supabase = createClient()
 
   useEffect(() => { load() }, [])
 
   useEffect(() => {
-    if (selected.length > 0 && office) buildPreview()
+    if (selected.length > 0 && office && time) buildPreview()
     else setStops([])
-  }, [selected, office])
+  }, [selected, office, time, sortBy])
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser()
@@ -39,18 +41,45 @@ export default function Routes() {
     } catch { return 0 }
   }
 
+  function formatTime(totalMins: number) {
+    const mins = ((totalMins % 1440) + 1440) % 1440
+    const h = Math.floor(mins / 60)
+    const m = mins % 60
+    const ampm = h < 12 ? 'AM' : 'PM'
+    const displayH = h % 12 || 12
+    return `${displayH}:${m.toString().padStart(2, '0')} ${ampm}`
+  }
+
   async function buildPreview() {
     setLoading(true)
     const chosen = clients.filter(c => selected.includes(c.ID) && c.address)
     if (!chosen.length) { setLoading(false); return }
-    const withDist = await Promise.all(chosen.map(async c => ({ ...c, dist: await getMins(office, c.address) })))
-    const ordered = [...withDist].sort((a, b) => a.dist - b.dist)
+
+    const withDist = await Promise.all(chosen.map(async c => ({
+      ...c,
+      dist: await getMins(office, c.address)
+    })))
+    const ordered = [...withDist].sort((a, b) => sortBy === 'closest' ? a.dist - b.dist : b.dist - a.dist)
+
     const result: any[] = []
     let loc = office
-    for (const c of ordered) {
+    let [h, m] = time.split(':').map(Number)
+    let currentMins = h * 60 + m
+
+    for (let i = 0; i < ordered.length; i++) {
+      const c = ordered[i]
       const mins = await getMins(loc, c.address)
-      result.push({ name: c.name, address: c.address, driveMin: mins })
+      const departMins = currentMins - mins - 10
+      result.push({
+        name: c.name,
+        address: c.address,
+        driveMin: mins,
+        departBy: formatTime(departMins),
+        arriveAt: formatTime(currentMins),
+        isFirst: i === 0
+      })
       loc = c.address
+      currentMins += 60
     }
     setStops(result)
     setLoading(false)
@@ -94,6 +123,17 @@ export default function Routes() {
         <label className="block text-sm font-medium text-gray-700 mb-1">Date (optional)</label>
         <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full p-2 border text-gray-900 bg-white" />
       </div>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Start time</label>
+        <input type="time" value={time} onChange={e => setTime(e.target.value)} className="w-full p-2 border text-gray-900 bg-white" />
+      </div>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Sort route by</label>
+        <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className="w-full p-2 border text-gray-900 bg-white">
+          <option value="closest">Closest to office first</option>
+          <option value="furthest">Furthest from office first</option>
+        </select>
+      </div>
 
       {loading && <p className="text-sm text-gray-500 mb-2">Calculating...</p>}
       {stops.length > 0 && (
@@ -103,6 +143,8 @@ export default function Routes() {
             <div key={i} className="mb-2 pb-2 border-b last:border-0 text-sm text-gray-700">
               <p className="font-medium text-gray-900">{i + 1}. {s.name}</p>
               <p>Drive: {format(s.driveMin)}</p>
+              <p>{s.isFirst ? 'Leave office by' : 'Leave previous by'}: {s.departBy}</p>
+              <p>Arrive by: {s.arriveAt}</p>
             </div>
           ))}
         </div>
