@@ -46,11 +46,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="flex min-h-screen">
         {!isLogin && (
-          <aside className={`bg-black text-white transition-all duration-300 fixed md:relative z-20 h-screen ${open ? 'w-64' : 'w-16'} flex flex-col`}>
+          <aside className={`bg-black text-white transition-all duration-300 fixed md:relative z-20 h-screen ${open ? 'w-64' : 'w-14'} flex flex-col`}>
             <div className="p-4 flex items-center justify-between">
               {open && <span className="font-bold text-lg">LumenForge</span>}
-              <button onClick={() => setOpen(!open)} className="p-1 hover:bg-gray-800 rounded">
-                {open ? '◀' : '▶'}
+              <button onClick={() => setOpen(!open)} className="p-2 hover:bg-gray-800 rounded text-white">
+                {open ? '‹' : '›'}
               </button>
             </div>
             <nav className="flex-1 px-2 space-y-1 overflow-y-auto">
@@ -66,7 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <button onClick={handleLogout} className="p-4 text-left hover:bg-gray-800">Logout</button>
           </aside>
         )}
-        <main className={`flex-1 bg-gray-50 ${!isLogin && !open ? 'ml-16' : !isLogin ? 'ml-64' : ''} md:ml-0 transition-all duration-300`}>{children}</main>
+        <main className={`flex-1 bg-gray-50 ${!isLogin ? (open ? 'ml-64' : 'ml-14') : ''} md:ml-0 transition-all duration-300`}>{children}</main>
       </body>
     </html>
   )
