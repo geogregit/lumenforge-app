@@ -42,12 +42,12 @@ export default function Routes() {
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6">
-      <h1 className="text-2xl mb-4">Routes</h1>
+      <h1 className="text-2xl mb-4 text-gray-900">Routes</h1>
       <div className="mb-4">
-        <label className="block text-sm font-medium mb-1">Select clients for route</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Select clients for route</label>
         <div className="border max-h-48 overflow-y-auto p-2 space-y-1">
           {clients.filter(c => c.address).map(c => (
-            <label key={c.ID} className="flex items-center gap-2 text-sm">
+            <label key={c.ID} className="flex items-center gap-2 text-sm text-gray-900">
               <input type="checkbox" checked={selected.includes(c.ID)} onChange={() => toggle(c.ID)} />
               {c.name}
             </label>
@@ -55,8 +55,8 @@ export default function Routes() {
         </div>
       </div>
       <div className="mb-4">
-        <label className="block text-sm font-medium mb-1">Date (optional)</label>
-        <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full p-2 border" />
+        <label className="block text-sm font-medium text-gray-700 mb-1">Date (optional)</label>
+        <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full p-2 border text-gray-900 bg-white" />
       </div>
       {links && (
         <div className="flex flex-col gap-2">
