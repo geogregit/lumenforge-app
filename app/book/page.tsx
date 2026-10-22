@@ -11,6 +11,7 @@ export default function Book() {
   const [busyTimes, setBusyTimes] = useState<string[]>([])
   const [officeAddress, setOfficeAddress] = useState('')
   const [driveMinutes, setDriveMinutes] = useState<number | null>(null)
+  const [driveStatus, setDriveStatus] = useState('')
   const supabase = createClient()
 
   const timeSlots: { label: string; value: string }[] = []
@@ -40,6 +41,7 @@ export default function Book() {
       fetchDriveTime(officeAddress, selected.address)
     } else {
       setDriveMinutes(null)
+      setDriveStatus('')
     }
   }, [selectedClient, officeAddress, clients])
 
@@ -56,19 +58,26 @@ export default function Book() {
   }
 
   async function fetchDriveTime(from: string, to: string) {
+    setDriveStatus('Calculating...')
     const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY
-    if (!key) return
+    if (!key) {
+      setDriveStatus('No API key')
+      return
+    }
     try {
-      const geo1 = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(from)}&key=${key}`).then(r => r.json())
-      const geo2 = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(to)}&key=${key}`).then(r => r.json())
-      if (geo1.results?.[0] && geo2.results?.[0]) {
-        const origin = `${geo1.results[0].geometry.location.lat},${geo1.results[0].geometry.location.lng}`
-        const dest = `${geo2.results[0].geometry.location.lat},${geo2.results[0].geometry.location.lng}`
-        const dist = await fetch(`https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${dest}&key=${key}`).then(r => r.json())
-        const seconds = dist.rows?.[0]?.elements?.[0]?.duration?.value
-        if (seconds) setDriveMinutes(Math.round(seconds / 60))
+      const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(from)}&destinations=${encodeURIComponent(to)}&key=${key}`
+      const res = await fetch(url)
+      const data = await res.json()
+      const element = data.rows?.[0]?.elements?.[0]
+      if (element?.status === 'OK' && element.duration?.value) {
+        setDriveMinutes(Math.round(element.duration.value / 60))
+        setDriveStatus('')
+      } else {
+        setDriveStatus(element?.status || 'Failed')
+        setDriveMinutes(null)
       }
     } catch (err) {
+      setDriveStatus('Error')
       setDriveMinutes(null)
     }
   }
@@ -116,8 +125,8 @@ export default function Book() {
   const showRoute = selected && selected.address && officeAddress && date && time
 
   function getLeaveBy() {
-    if (!time) return ''
-    const buffer = driveMinutes ? driveMinutes + 10 : 30
+    if (!time || !driveMinutes) return ''
+    const buffer = driveMinutes + 10
     const [h, m] = time.split(':').map(Number)
     const leave = new Date()
     leave.setHours(h, m - buffer, 0, 0)
@@ -138,6 +147,7 @@ export default function Book() {
   }
 
   const links = getMapLinks()
+  const leaveBy = getLeaveBy()
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6">
@@ -175,8 +185,8 @@ export default function Book() {
           <p className="text-sm text-gray-700 mb-1"><strong>Client:</strong> {selected.name}</p>
           <p className="text-sm text-gray-700 mb-1"><strong>Address:</strong> {selected.address}</p>
           <p className="text-sm text-gray-700 mb-1"><strong>Appointment:</strong> {timeSlots.find(s => s.value === time)?.label}</p>
-          <p className="text-sm text-gray-700 mb-1"><strong>Drive time:</strong> {driveMinutes ? `${driveMinutes} min` : 'Calculating...'}</p>
-          <p className="text-sm text-gray-900 mb-4"><strong>Leave office by:</strong> {getLeaveBy()}</p>
+          <p className="text-sm text-gray-700 mb-1"><strong>Drive time:</strong> {driveMinutes ? `${driveMinutes} min` : driveStatus || '—'}</p>
+          {leaveBy && <p className="text-sm text-gray-900 mb-4"><strong>Leave office by:</strong> {leaveBy}</p>}
           {links && (
             <div className="flex flex-col gap-2">
               <a href={links.google} target="_blank" className="bg-blue-600 text-white text-center py-2">Open in Google Maps</a>
