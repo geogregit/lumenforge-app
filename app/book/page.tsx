@@ -10,9 +10,8 @@ export default function Book() {
   const [status, setStatus] = useState('')
   const [busyTimes, setBusyTimes] = useState<string[]>([])
   const [officeAddress, setOfficeAddress] = useState('')
-  const [driveMinutes, setDriveMinutes] = useState<number | null>(null)
   const [driveStatus, setDriveStatus] = useState('')
-  const [routeOrder, setRouteOrder] = useState<any[]>([])
+  const [routeStops, setRouteStops] = useState<any[]>([])
   const supabase = createClient()
 
   const timeSlots: { label: string; value: string }[] = []
@@ -37,17 +36,13 @@ export default function Book() {
   }, [date])
 
   useEffect(() => {
-    if (selectedClients.length === 1 && officeAddress) {
-      const selected = clients.find(c => c.ID === selectedClients[0])
-      if (selected?.address) fetchDriveTime(officeAddress, selected.address)
-    } else if (selectedClients.length > 1 && officeAddress && date) {
-      optimizeRoute()
+    if (selectedClients.length > 0 && officeAddress && time) {
+      buildRouteDetails()
     } else {
-      setDriveMinutes(null)
+      setRouteStops([])
       setDriveStatus('')
-      setRouteOrder([])
     }
-  }, [selectedClients, officeAddress, clients, date])
+  }, [selectedClients, officeAddress, clients, time])
 
   async function loadClients() {
     const { data } = await supabase.from('Clients').select('*')
@@ -61,48 +56,69 @@ export default function Book() {
     if (data?.office_address) setOfficeAddress(data.office_address)
   }
 
-  async function fetchDriveTime(from: string, to: string) {
-    setDriveStatus('Calculating...')
+  async function getSegmentMinutes(from: string, to: string): Promise<number> {
     try {
       const res = await fetch(`/api/drive-time?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`)
       const data = await res.json()
-      if (data.minutes) {
-        setDriveMinutes(data.minutes)
-        setDriveStatus('')
-      } else {
-        setDriveStatus(data.error || 'Failed')
-        setDriveMinutes(null)
-      }
-    } catch (err) {
-      setDriveStatus('Error')
-      setDriveMinutes(null)
+      return data.minutes || 0
+    } catch {
+      return 0
     }
   }
 
-  async function optimizeRoute() {
-    setDriveStatus('Optimizing route...')
+  async function buildRouteDetails() {
+    setDriveStatus('Calculating route...')
     const selected = clients.filter(c => selectedClients.includes(c.ID) && c.address)
-    if (selected.length === 0) return
-
-    const waypoints = selected.map(c => c.address)
-    try {
-      const res = await fetch('/api/drive-time', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ origin: officeAddress, destinations: waypoints })
-      })
-      const data = await res.json()
-      if (data.order && data.totalMinutes) {
-        const ordered = data.order.map((i: number) => selected[i])
-        setRouteOrder(ordered)
-        setDriveMinutes(data.totalMinutes)
-        setDriveStatus('')
-      } else {
-        setDriveStatus(data.error || 'Failed')
-      }
-    } catch (err) {
-      setDriveStatus('Error')
+    if (selected.length === 0) {
+      setDriveStatus('')
+      return
     }
+
+    let ordered = selected
+    if (selected.length > 1) {
+      try {
+        const res = await fetch('/api/drive-time', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ origin: officeAddress, destinations: selected.map(c => c.address) })
+        })
+        const data = await res.json()
+        if (data.order) {
+          ordered = data.order.map((i: number) => selected[i])
+        }
+      } catch {}
+    }
+
+    const stops: any[] = []
+    let currentLocation = officeAddress
+    let currentTime = time
+    let [h, m] = time.split(':').map(Number)
+
+    for (const client of ordered) {
+      const mins = await getSegmentMinutes(currentLocation, client.address)
+      const departMins = h * 60 + m - mins - 10
+      const departH = Math.floor(departMins / 60)
+      const departM = departMins % 60
+      const ampm = departH < 12 ? 'AM' : 'PM'
+      const displayH = departH % 12 || 12
+
+      stops.push({
+        name: client.name,
+        address: client.address,
+        driveMin: mins,
+        departBy: `${displayH}:${departM.toString().padStart(2, '0')} ${ampm}`,
+        arriveAt: timeSlots.find(s => s.value === time)?.label || time
+      })
+
+      currentLocation = client.address
+      // next stop starts after this appointment (assume 60 min)
+      const nextMins = h * 60 + m + 60
+      h = Math.floor(nextMins / 60)
+      m = nextMins % 60
+    }
+
+    setRouteStops(stops)
+    setDriveStatus('')
   }
 
   async function checkAvailability(selectedDate: string) {
@@ -150,8 +166,7 @@ export default function Book() {
     )
   }
 
-  function formatMinutes(mins: number | null) {
-    if (!mins) return ''
+  function formatMinutes(mins: number) {
     const h = Math.floor(mins / 60)
     const m = mins % 60
     if (h === 0) return `${m} min`
@@ -159,32 +174,17 @@ export default function Book() {
     return `${h} hr ${m} min`
   }
 
-  function getLeaveBy() {
-    if (!time || !driveMinutes) return ''
-    const buffer = driveMinutes + 10
-    const [h, m] = time.split(':').map(Number)
-    const leave = new Date()
-    leave.setHours(h, m - buffer, 0, 0)
-    let lh = leave.getHours()
-    const lm = leave.getMinutes().toString().padStart(2, '0')
-    const ampm = lh < 12 ? 'AM' : 'PM'
-    lh = lh % 12 || 12
-    return `${lh}:${lm} ${ampm}`
-  }
-
   function getMapLinks() {
-    if (selectedClients.length === 0 || !officeAddress) return null
-    const selected = clients.filter(c => selectedClients.includes(c.ID) && c.address)
-    if (selected.length === 0) return null
+    if (routeStops.length === 0 || !officeAddress) return null
     const origin = encodeURIComponent(officeAddress)
-    if (selected.length === 1) {
-      const dest = encodeURIComponent(selected[0].address)
+    if (routeStops.length === 1) {
+      const dest = encodeURIComponent(routeStops[0].address)
       return {
         google: `https://www.google.com/maps/dir/${origin}/${dest}`,
         apple: `https://maps.apple.com/?saddr=${origin}&daddr=${dest}`
       }
     }
-    const waypoints = selected.map(c => encodeURIComponent(c.address)).join('/')
+    const waypoints = routeStops.map(s => encodeURIComponent(s.address)).join('/')
     return {
       google: `https://www.google.com/maps/dir/${origin}/${waypoints}`,
       apple: `https://maps.apple.com/?saddr=${origin}&daddr=${waypoints}`
@@ -192,7 +192,6 @@ export default function Book() {
   }
 
   const links = getMapLinks()
-  const leaveBy = getLeaveBy()
   const showRoute = selectedClients.length > 0 && officeAddress && date && time
 
   return (
@@ -232,21 +231,16 @@ export default function Book() {
       {showRoute && (
         <div className="mt-8 p-4 border bg-white">
           <h2 className="font-medium text-gray-900 mb-3">Route Preview</h2>
-          {routeOrder.length > 0 ? (
-            <div className="mb-2">
-              <p className="text-sm text-gray-700 mb-1"><strong>Best order:</strong></p>
-              {routeOrder.map((c, i) => (
-                <p key={c.ID} className="text-sm text-gray-700">{i + 1}. {c.name}</p>
-              ))}
+          {driveStatus && <p className="text-sm text-gray-500 mb-2">{driveStatus}</p>}
+          {routeStops.map((stop, i) => (
+            <div key={i} className="mb-3 pb-3 border-b last:border-0">
+              <p className="text-sm font-medium text-gray-900">{i + 1}. {stop.name}</p>
+              <p className="text-sm text-gray-700">Drive: {formatMinutes(stop.driveMin)}</p>
+              <p className="text-sm text-gray-700">Leave previous by: {stop.departBy}</p>
             </div>
-          ) : (
-            <p className="text-sm text-gray-700 mb-1"><strong>Client:</strong> {clients.find(c => c.ID === selectedClients[0])?.name}</p>
-          )}
-          <p className="text-sm text-gray-700 mb-1"><strong>Appointment:</strong> {timeSlots.find(s => s.value === time)?.label}</p>
-          <p className="text-sm text-gray-700 mb-1"><strong>Drive time:</strong> {formatMinutes(driveMinutes) || driveStatus || '—'}</p>
-          {leaveBy && <p className="text-sm text-gray-900 mb-4"><strong>Leave office by:</strong> {leaveBy}</p>}
+          ))}
           {links && (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 mt-4">
               <a href={links.google} target="_blank" className="bg-blue-600 text-white text-center py-2">Open in Google Maps</a>
               <a href={links.apple} target="_blank" className="bg-gray-800 text-white text-center py-2">Open in Apple Maps</a>
             </div>
