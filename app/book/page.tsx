@@ -95,15 +95,18 @@ export default function Book() {
     let [h, m] = time.split(':').map(Number)
     let currentMins = h * 60 + m
 
-    for (const client of ordered) {
+    for (let i = 0; i < ordered.length; i++) {
+      const client = ordered[i]
       const mins = await getSegmentMinutes(currentLocation, client.address)
       const departMins = currentMins - mins - 10
+      const arriveMins = currentMins
       stops.push({
         name: client.name,
         address: client.address,
         driveMin: mins,
         departBy: formatTime(departMins),
-        arriveAt: formatTime(currentMins)
+        arriveAt: formatTime(arriveMins),
+        isFirst: i === 0
       })
       currentLocation = client.address
       currentMins = currentMins + 60
@@ -235,7 +238,8 @@ export default function Book() {
             <div key={i} className="mb-3 pb-3 border-b last:border-0">
               <p className="text-sm font-medium text-gray-900">{i + 1}. {stop.name}</p>
               <p className="text-sm text-gray-700">Drive: {formatMinutes(stop.driveMin)}</p>
-              <p className="text-sm text-gray-700">Leave previous by: {stop.departBy}</p>
+              <p className="text-sm text-gray-700">{stop.isFirst ? 'Leave office by' : 'Leave previous by'}: {stop.departBy}</p>
+              <p className="text-sm text-gray-700">Arrive by: {stop.arriveAt}</p>
             </div>
           ))}
           {links && (
