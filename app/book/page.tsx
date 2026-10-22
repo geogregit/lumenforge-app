@@ -13,6 +13,7 @@ export default function Book() {
   const [driveStatus, setDriveStatus] = useState('')
   const [routeStops, setRouteStops] = useState<any[]>([])
   const [sortBy, setSortBy] = useState<'closest' | 'furthest'>('closest')
+  const [impossible, setImpossible] = useState(false)
   const supabase = createClient()
 
   const timeSlots: { label: string; value: string }[] = []
@@ -42,6 +43,7 @@ export default function Book() {
     } else {
       setRouteStops([])
       setDriveStatus('')
+      setImpossible(false)
     }
   }, [selectedClients, officeAddress, clients, time, sortBy])
 
@@ -78,6 +80,7 @@ export default function Book() {
 
   async function buildRouteDetails() {
     setDriveStatus('Calculating route...')
+    setImpossible(false)
     const selected = clients.filter(c => selectedClients.includes(c.ID) && c.address)
     if (selected.length === 0) {
       setDriveStatus('')
@@ -94,12 +97,14 @@ export default function Book() {
     let currentLocation = officeAddress
     let [h, m] = time.split(':').map(Number)
     let currentMins = h * 60 + m
+    let tooTight = false
 
     for (let i = 0; i < ordered.length; i++) {
       const client = ordered[i]
       const mins = await getSegmentMinutes(currentLocation, client.address)
       const departMins = currentMins - mins - 10
       const arriveMins = currentMins
+      if (departMins < 5 * 60) tooTight = true // before 5 AM
       stops.push({
         name: client.name,
         address: client.address,
@@ -113,6 +118,7 @@ export default function Book() {
     }
 
     setRouteStops(stops)
+    setImpossible(tooTight)
     setDriveStatus('')
   }
 
@@ -233,6 +239,11 @@ export default function Book() {
       {showRoute && (
         <div className="mt-8 p-4 border bg-white">
           <h2 className="font-medium text-gray-900 mb-3">Route Preview</h2>
+          {impossible && (
+            <div className="mb-3 p-2 bg-red-50 border border-red-200 text-red-700 text-sm">
+              This schedule may not be possible. Consider rescheduling or reducing the number of appointments.
+            </div>
+          )}
           {driveStatus && <p className="text-sm text-gray-500 mb-2">{driveStatus}</p>}
           {routeStops.map((stop, i) => (
             <div key={i} className="mb-3 pb-3 border-b last:border-0">
