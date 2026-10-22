@@ -59,21 +59,14 @@ export default function Book() {
 
   async function fetchDriveTime(from: string, to: string) {
     setDriveStatus('Calculating...')
-    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY
-    if (!key) {
-      setDriveStatus('No API key')
-      return
-    }
     try {
-      const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(from)}&destinations=${encodeURIComponent(to)}&key=${key}`
-      const res = await fetch(url)
+      const res = await fetch(`/api/drive-time?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`)
       const data = await res.json()
-      const element = data.rows?.[0]?.elements?.[0]
-      if (element?.status === 'OK' && element.duration?.value) {
-        setDriveMinutes(Math.round(element.duration.value / 60))
+      if (data.minutes) {
+        setDriveMinutes(data.minutes)
         setDriveStatus('')
       } else {
-        setDriveStatus(element?.status || 'Failed')
+        setDriveStatus(data.error || 'Failed')
         setDriveMinutes(null)
       }
     } catch (err) {
