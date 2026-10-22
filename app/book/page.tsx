@@ -10,6 +10,7 @@ export default function Book() {
   const [status, setStatus] = useState('')
   const [busyTimes, setBusyTimes] = useState<string[]>([])
   const [officeAddress, setOfficeAddress] = useState('')
+  const [driveMinutes, setDriveMinutes] = useState<number | null>(null)
   const supabase = createClient()
 
   const timeSlots: { label: string; value: string }[] = []
@@ -33,6 +34,15 @@ export default function Book() {
     if (date) checkAvailability(date)
   }, [date])
 
+  useEffect(() => {
+    const selected = clients.find(c => c.ID === selectedClient)
+    if (selected?.address && officeAddress) {
+      fetchDriveTime(officeAddress, selected.address)
+    } else {
+      setDriveMinutes(null)
+    }
+  }, [selectedClient, officeAddress, clients])
+
   async function loadClients() {
     const { data } = await supabase.from('Clients').select('*')
     setClients(data || [])
@@ -43,6 +53,24 @@ export default function Book() {
     if (!user) return
     const { data } = await supabase.from('profiles').select('office_address').eq('id', user.id).single()
     if (data?.office_address) setOfficeAddress(data.office_address)
+  }
+
+  async function fetchDriveTime(from: string, to: string) {
+    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY
+    if (!key) return
+    try {
+      const geo1 = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(from)}&key=${key}`).then(r => r.json())
+      const geo2 = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(to)}&key=${key}`).then(r => r.json())
+      if (geo1.results?.[0] && geo2.results?.[0]) {
+        const origin = `${geo1.results[0].geometry.location.lat},${geo1.results[0].geometry.location.lng}`
+        const dest = `${geo2.results[0].geometry.location.lat},${geo2.results[0].geometry.location.lng}`
+        const dist = await fetch(`https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${dest}&key=${key}`).then(r => r.json())
+        const seconds = dist.rows?.[0]?.elements?.[0]?.duration?.value
+        if (seconds) setDriveMinutes(Math.round(seconds / 60))
+      }
+    } catch (err) {
+      setDriveMinutes(null)
+    }
   }
 
   async function checkAvailability(selectedDate: string) {
@@ -89,9 +117,10 @@ export default function Book() {
 
   function getLeaveBy() {
     if (!time) return ''
+    const buffer = driveMinutes ? driveMinutes + 10 : 30
     const [h, m] = time.split(':').map(Number)
     const leave = new Date()
-    leave.setHours(h, m - 30, 0, 0) // simple 30 min buffer
+    leave.setHours(h, m - buffer, 0, 0)
     let lh = leave.getHours()
     const lm = leave.getMinutes().toString().padStart(2, '0')
     const ampm = lh < 12 ? 'AM' : 'PM'
@@ -146,6 +175,7 @@ export default function Book() {
           <p className="text-sm text-gray-700 mb-1"><strong>Client:</strong> {selected.name}</p>
           <p className="text-sm text-gray-700 mb-1"><strong>Address:</strong> {selected.address}</p>
           <p className="text-sm text-gray-700 mb-1"><strong>Appointment:</strong> {timeSlots.find(s => s.value === time)?.label}</p>
+          <p className="text-sm text-gray-700 mb-1"><strong>Drive time:</strong> {driveMinutes ? `${driveMinutes} min` : 'Calculating...'}</p>
           <p className="text-sm text-gray-900 mb-4"><strong>Leave office by:</strong> {getLeaveBy()}</p>
           {links && (
             <div className="flex flex-col gap-2">
