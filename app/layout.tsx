@@ -57,35 +57,35 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
             <nav className="flex-1 py-2 overflow-y-auto">
               <Link href="/" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800" onClick={() => window.innerWidth < 768 && setOpen(false)}>
-                <span className="w-6 text-center">🏠</span>{open && <span>Dashboard</span>}
+                <span className="w-6 text-center text-lg">🏠</span>{open && <span>Dashboard</span>}
               </Link>
               <Link href="/book" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800" onClick={() => window.innerWidth < 768 && setOpen(false)}>
-                <span className="w-6 text-center">📅</span>{open && <span>Schedule Appointment</span>}
+                <span className="w-6 text-center text-lg">📅</span>{open && <span>Schedule Appointment</span>}
               </Link>
               <Link href="/clients/list" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800" onClick={() => window.innerWidth < 768 && setOpen(false)}>
-                <span className="w-6 text-center">👤</span>{open && <span>Clients</span>}
+                <span className="w-6 text-center text-lg">👤</span>{open && <span>Clients</span>}
               </Link>
-              <Link href="/clients" className="flex items-center gap-3 px-3 py-2 pl-10 hover:bg-gray-800" onClick={() => window.innerWidth < 768 && setOpen(false)}>
-                {open && <span className="text-sm">Import Spreadsheet</span>}
+              <Link href="/clients" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800" onClick={() => window.innerWidth < 768 && setOpen(false)}>
+                <span className="w-6 text-center text-lg">📄</span>{open && <span className="text-sm">Import Spreadsheet</span>}
               </Link>
               <Link href="/routes" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800" onClick={() => window.innerWidth < 768 && setOpen(false)}>
-                <span className="w-6 text-center">🗺️</span>{open && <span>Routes</span>}
+                <span className="w-6 text-center text-lg">🗺️</span>{open && <span>Routes</span>}
               </Link>
               <a href="https://outlook.office.com" target="_blank" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800">
-                <span className="w-6 text-center">📧</span>{open && <span>Outlook</span>}
+                <span className="w-6 text-center text-lg">📧</span>{open && <span>Outlook</span>}
               </a>
               <a href="https://teams.microsoft.com" target="_blank" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800">
-                <span className="w-6 text-center">💬</span>{open && <span>Teams</span>}
+                <span className="w-6 text-center text-lg">💬</span>{open && <span>Teams</span>}
               </a>
               <a href="https://calendar.google.com" target="_blank" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800">
-                <span className="w-6 text-center">📆</span>{open && <span>Calendar</span>}
+                <span className="w-6 text-center text-lg">📆</span>{open && <span>Calendar</span>}
               </a>
               <Link href="/settings" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800" onClick={() => window.innerWidth < 768 && setOpen(false)}>
-                <span className="w-6 text-center">⚙️</span>{open && <span>Settings</span>}
+                <span className="w-6 text-center text-lg">⚙️</span>{open && <span>Settings</span>}
               </Link>
             </nav>
             <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-3 hover:bg-gray-800 border-t border-gray-800">
-              <span className="w-6 text-center">🚪</span>{open && <span>Logout</span>}
+              <span className="w-6 text-center text-lg">🚪</span>{open && <span>Logout</span>}
             </button>
           </aside>
         )}
