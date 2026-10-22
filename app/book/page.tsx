@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 
 export default function Book() {
   const [clients, setClients] = useState<any[]>([])
-  const [selectedClient, setSelectedClient] = useState('')
+  const [selectedClients, setSelectedClients] = useState<string[]>([])
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
   const [status, setStatus] = useState('')
@@ -12,6 +12,7 @@ export default function Book() {
   const [officeAddress, setOfficeAddress] = useState('')
   const [driveMinutes, setDriveMinutes] = useState<number | null>(null)
   const [driveStatus, setDriveStatus] = useState('')
+  const [routeOrder, setRouteOrder] = useState<any[]>([])
   const supabase = createClient()
 
   const timeSlots: { label: string; value: string }[] = []
@@ -36,14 +37,17 @@ export default function Book() {
   }, [date])
 
   useEffect(() => {
-    const selected = clients.find(c => c.ID === selectedClient)
-    if (selected?.address && officeAddress) {
-      fetchDriveTime(officeAddress, selected.address)
+    if (selectedClients.length === 1 && officeAddress) {
+      const selected = clients.find(c => c.ID === selectedClients[0])
+      if (selected?.address) fetchDriveTime(officeAddress, selected.address)
+    } else if (selectedClients.length > 1 && officeAddress && date) {
+      optimizeRoute()
     } else {
       setDriveMinutes(null)
       setDriveStatus('')
+      setRouteOrder([])
     }
-  }, [selectedClient, officeAddress, clients])
+  }, [selectedClients, officeAddress, clients, date])
 
   async function loadClients() {
     const { data } = await supabase.from('Clients').select('*')
@@ -75,6 +79,32 @@ export default function Book() {
     }
   }
 
+  async function optimizeRoute() {
+    setDriveStatus('Optimizing route...')
+    const selected = clients.filter(c => selectedClients.includes(c.ID) && c.address)
+    if (selected.length === 0) return
+
+    const waypoints = selected.map(c => c.address)
+    try {
+      const res = await fetch('/api/drive-time', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ origin: officeAddress, destinations: waypoints })
+      })
+      const data = await res.json()
+      if (data.order && data.totalMinutes) {
+        const ordered = data.order.map((i: number) => selected[i])
+        setRouteOrder(ordered)
+        setDriveMinutes(data.totalMinutes)
+        setDriveStatus('')
+      } else {
+        setDriveStatus(data.error || 'Failed')
+      }
+    } catch (err) {
+      setDriveStatus('Error')
+    }
+  }
+
   async function checkAvailability(selectedDate: string) {
     try {
       const res = await fetch('https://lumenforge-prod.app.n8n.cloud/webhook/bab90c6e-d5b9-49b2-8271-ca3029af1eee', {
@@ -97,25 +127,37 @@ export default function Book() {
 
   async function handleBook(e: React.FormEvent) {
     e.preventDefault()
-    if (!selectedClient || !date || !time) return
-    const client = clients.find(c => c.ID === selectedClient)
+    if (selectedClients.length === 0 || !date || !time) return
     setStatus('Booking...')
     try {
-      const res = await fetch('https://lumenforge-prod.app.n8n.cloud/webhook/ed413225-6b24-4ccf-8f52-b1f2db33e41b', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: client.name, email: client.email, date, time })
-      })
-      if (res.ok) {
-        setStatus('Appointment booked!')
-        alert('Appointment booked successfully')
-        checkAvailability(date)
+      for (const id of selectedClients) {
+        const client = clients.find(c => c.ID === id)
+        await fetch('https://lumenforge-prod.app.n8n.cloud/webhook/ed413225-6b24-4ccf-8f52-b1f2db33e41b', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: client.name, email: client.email, date, time })
+        })
       }
+      setStatus('Appointments booked!')
+      alert('Appointments booked successfully')
+      checkAvailability(date)
     } catch (err) { setStatus('Error') }
   }
 
-  const selected = clients.find(c => c.ID === selectedClient)
-  const showRoute = selected && selected.address && officeAddress && date && time
+  function toggleClient(id: string) {
+    setSelectedClients(prev => 
+      prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+    )
+  }
+
+  function formatMinutes(mins: number | null) {
+    if (!mins) return ''
+    const h = Math.floor(mins / 60)
+    const m = mins % 60
+    if (h === 0) return `${m} min`
+    if (m === 0) return `${h} hr`
+    return `${h} hr ${m} min`
+  }
 
   function getLeaveBy() {
     if (!time || !driveMinutes) return ''
@@ -131,27 +173,42 @@ export default function Book() {
   }
 
   function getMapLinks() {
-    if (!showRoute) return null
+    if (selectedClients.length === 0 || !officeAddress) return null
+    const selected = clients.filter(c => selectedClients.includes(c.ID) && c.address)
+    if (selected.length === 0) return null
     const origin = encodeURIComponent(officeAddress)
-    const dest = encodeURIComponent(selected.address)
-    const google = `https://www.google.com/maps/dir/${origin}/${dest}`
-    const apple = `https://maps.apple.com/?saddr=${origin}&daddr=${dest}`
-    return { google, apple }
+    if (selected.length === 1) {
+      const dest = encodeURIComponent(selected[0].address)
+      return {
+        google: `https://www.google.com/maps/dir/${origin}/${dest}`,
+        apple: `https://maps.apple.com/?saddr=${origin}&daddr=${dest}`
+      }
+    }
+    const waypoints = selected.map(c => encodeURIComponent(c.address)).join('/')
+    return {
+      google: `https://www.google.com/maps/dir/${origin}/${waypoints}`,
+      apple: `https://maps.apple.com/?saddr=${origin}&daddr=${waypoints}`
+    }
   }
 
   const links = getMapLinks()
   const leaveBy = getLeaveBy()
+  const showRoute = selectedClients.length > 0 && officeAddress && date && time
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6">
       <h1 className="text-2xl mb-4 text-gray-900">Schedule Appointment</h1>
       <form onSubmit={handleBook} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Client</label>
-          <select value={selectedClient} onChange={e => setSelectedClient(e.target.value)} className="w-full p-2 border text-gray-900 bg-white">
-            <option value="">Select client</option>
-            {clients.map(c => <option key={c.ID} value={c.ID}>{c.name}</option>)}
-          </select>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Clients (select one or more)</label>
+          <div className="border max-h-40 overflow-y-auto p-2 space-y-1">
+            {clients.map(c => (
+              <label key={c.ID} className="flex items-center gap-2 text-sm text-gray-900">
+                <input type="checkbox" checked={selectedClients.includes(c.ID)} onChange={() => toggleClient(c.ID)} />
+                {c.name}
+              </label>
+            ))}
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
@@ -168,17 +225,25 @@ export default function Book() {
             ))}
           </select>
         </div>
-        <button type="submit" className="w-full bg-blue-600 text-white p-2">Book Appointment</button>
+        <button type="submit" className="w-full bg-blue-600 text-white p-2">Book Appointment{selectedClients.length > 1 ? 's' : ''}</button>
         {status && <p className="text-sm text-gray-700">{status}</p>}
       </form>
 
       {showRoute && (
         <div className="mt-8 p-4 border bg-white">
           <h2 className="font-medium text-gray-900 mb-3">Route Preview</h2>
-          <p className="text-sm text-gray-700 mb-1"><strong>Client:</strong> {selected.name}</p>
-          <p className="text-sm text-gray-700 mb-1"><strong>Address:</strong> {selected.address}</p>
+          {routeOrder.length > 0 ? (
+            <div className="mb-2">
+              <p className="text-sm text-gray-700 mb-1"><strong>Best order:</strong></p>
+              {routeOrder.map((c, i) => (
+                <p key={c.ID} className="text-sm text-gray-700">{i + 1}. {c.name}</p>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-700 mb-1"><strong>Client:</strong> {clients.find(c => c.ID === selectedClients[0])?.name}</p>
+          )}
           <p className="text-sm text-gray-700 mb-1"><strong>Appointment:</strong> {timeSlots.find(s => s.value === time)?.label}</p>
-          <p className="text-sm text-gray-700 mb-1"><strong>Drive time:</strong> {driveMinutes ? `${driveMinutes} min` : driveStatus || '—'}</p>
+          <p className="text-sm text-gray-700 mb-1"><strong>Drive time:</strong> {formatMinutes(driveMinutes) || driveStatus || '—'}</p>
           {leaveBy && <p className="text-sm text-gray-900 mb-4"><strong>Leave office by:</strong> {leaveBy}</p>}
           {links && (
             <div className="flex flex-col gap-2">
