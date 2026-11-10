@@ -7,17 +7,30 @@ import { createClient } from '@/lib/supabase'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
+  const [userMenu, setUserMenu] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
   const isLogin = pathname === '/login'
   const [suggestion, setSuggestion] = useState('')
   const [sent, setSent] = useState('')
+  const [userName, setUserName] = useState('')
+  const [userEmail, setUserEmail] = useState('')
 
   useEffect(() => {
     const isMobile = window.innerWidth < 768
     setOpen(!isMobile)
+    loadUser()
   }, [])
+
+  async function loadUser() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      setUserEmail(user.email || '')
+      const { data } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
+      setUserName(data?.full_name || user.email?.split('@')[0] || 'User')
+    }
+  }
 
   useEffect(() => {
     if (isLogin) return
@@ -87,12 +100,36 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {open && <span>Notifications</span>}
               </Link>
             </nav>
-            <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-3 hover:bg-gray-800 border-t border-gray-800 shrink-0">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              {open && <span>Logout</span>}
-            </button>
+
+            {/* User menu at bottom */}
+            <div className="relative border-t border-gray-800">
+              <button
+                onClick={() => setUserMenu(!userMenu)}
+                className="w-full flex items-center gap-3 px-3 py-3 hover:bg-gray-800 text-left"
+              >
+                <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-sm font-medium">
+                  {userName.charAt(0).toUpperCase()}
+                </div>
+                {open && (
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{userName}</p>
+                    <p className="text-xs text-gray-400 truncate">{userEmail}</p>
+                  </div>
+                )}
+              </button>
+
+              {userMenu && open && (
+                <div className="absolute bottom-full left-0 right-0 mb-1 bg-white text-gray-900 rounded-lg shadow-lg border py-2 mx-2">
+                  <div className="px-4 py-2 border-b">
+                    <p className="font-medium">{userName}</p>
+                    <p className="text-sm text-gray-500">{userEmail}</p>
+                  </div>
+                  <Link href="/settings" onClick={() => setUserMenu(false)} className="block px-4 py-2 text-sm hover:bg-gray-100">Account settings</Link>
+                  <Link href="/notifications" onClick={() => setUserMenu(false)} className="block px-4 py-2 text-sm hover:bg-gray-100">Recent activity</Link>
+                  <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100">Sign out</button>
+                </div>
+              )}
+            </div>
           </aside>
         )}
         <main className={`flex-1 bg-gray-50 min-h-screen ${!isLogin ? (open ? 'ml-64' : 'ml-14') : ''} md:ml-0`}>
