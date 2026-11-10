@@ -12,18 +12,19 @@ type AppItem = {
 
 export default function Dashboard() {
   const [apps] = useState<AppItem[]>([
-    { id: '1', name: 'Schedule Appointment', href: '/book', icon: 'https://img.icons8.com/color/96/calendar.png' },
+    { id: '1', name: 'Schedule Appointment', href: '/book', icon: 'https://img.icons8.com/ios/96/calendar.png' },
     { id: '2', name: 'Clients', href: '/clients/list', icon: 'https://img.icons8.com/ios/96/user.png' },
-    { id: '3', name: 'Routes', href: '/routes', icon: 'https://img.icons8.com/color/96/map.png' },
+    { id: '3', name: 'Routes', href: '/routes', icon: 'https://img.icons8.com/ios/96/map.png' },
     { id: '4', name: 'Outlook', href: 'https://outlook.office.com', icon: 'https://img.icons8.com/color/96/microsoft-outlook-2019.png', external: true },
     { id: '5', name: 'Teams', href: 'https://teams.microsoft.com', icon: 'https://img.icons8.com/fluency/96/microsoft-teams-2019.png', external: true },
     { id: '6', name: 'Microsoft 365', href: 'https://www.office.com', icon: 'https://img.icons8.com/fluency/96/microsoft-365.png', external: true },
-    { id: '7', name: 'Calendar', href: 'https://calendar.google.com', icon: 'https://img.icons8.com/color/96/calendar.png', external: true },
+    { id: '7', name: 'Calendar', href: 'https://calendar.google.com', icon: 'https://img.icons8.com/ios/96/calendar.png', external: true },
   ])
 
   const [selected, setSelected] = useState<AppItem | null>(null)
   const [showRequest, setShowRequest] = useState(false)
   const [requestText, setRequestText] = useState('')
+  const [suggestion, setSuggestion] = useState('')
   const [sent, setSent] = useState('')
 
   function sendEmail(subject: string, body: string) {
@@ -41,6 +42,12 @@ export default function Dashboard() {
     setShowRequest(false)
   }
 
+  function sendSuggestion() {
+    if (!suggestion.trim()) return
+    sendEmail('LumenForge Suggestion', suggestion)
+    setSuggestion('')
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-6 py-10">
@@ -51,7 +58,7 @@ export default function Dashboard() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 mb-12">
           {apps.map((app) => (
             <div key={app.id} className="relative bg-white rounded-xl border border-gray-200 p-6 flex flex-col items-center justify-center hover:shadow-md transition-shadow">
               <button
@@ -74,9 +81,22 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+
+        <div className="max-w-md">
+          <h2 className="text-lg font-medium text-gray-900 mb-2">Have a suggestion?</h2>
+          <textarea
+            value={suggestion}
+            onChange={e => setSuggestion(e.target.value)}
+            placeholder="Tell me what to improve or add..."
+            className="w-full border rounded-lg p-3 text-sm h-24 mb-2"
+          />
+          <button onClick={sendSuggestion} className="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm">
+            Send Suggestion
+          </button>
+          {sent && <p className="text-sm text-green-600 mt-2">{sent}</p>}
+        </div>
       </div>
 
-      {/* Side panel */}
       {selected && (
         <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setSelected(null)}>
           <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl p-6 overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -97,7 +117,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Request app modal */}
       {showRequest && (
         <div className="fixed inset-0 bg-black/30 z-40 flex items-center justify-center" onClick={() => setShowRequest(false)}>
           <div className="bg-white rounded-xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
