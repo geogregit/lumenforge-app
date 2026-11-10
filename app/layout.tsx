@@ -67,33 +67,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </svg>
               </button>
             </div>
-            <nav className="flex-1 py-2 overflow-hidden">
+            <nav className="flex-1 py-2">
               <Link href="/" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800" onClick={() => window.innerWidth < 768 && setOpen(false)}>
                 <span className="w-6 text-center text-lg">🏠</span>{open && <span>Dashboard</span>}
               </Link>
-              <Link href="/book" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800" onClick={() => window.innerWidth < 768 && setOpen(false)}>
-                <span className="w-6 text-center text-lg">📅</span>{open && <span>Schedule Appointment</span>}
-              </Link>
-              <Link href="/clients/list" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800" onClick={() => window.innerWidth < 768 && setOpen(false)}>
-                <span className="w-6 text-center text-lg">👤</span>{open && <span>Clients</span>}
-              </Link>
-              <Link href="/clients" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800" onClick={() => window.innerWidth < 768 && setOpen(false)}>
-                <span className="w-6 text-center text-lg">📄</span>{open && <span className="text-sm">Import Spreadsheet</span>}
-              </Link>
-              <Link href="/routes" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800" onClick={() => window.innerWidth < 768 && setOpen(false)}>
-                <span className="w-6 text-center text-lg">🗺️</span>{open && <span>Routes</span>}
-              </Link>
-              <a href="https://outlook.office.com" target="_blank" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800">
-                <span className="w-6 text-center text-lg">📧</span>{open && <span>Outlook</span>}
-              </a>
-              <a href="https://teams.microsoft.com" target="_blank" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800">
-                <span className="w-6 text-center text-lg">💬</span>{open && <span>Teams</span>}
-              </a>
-              <a href="https://calendar.google.com" target="_blank" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800">
-                <span className="w-6 text-center text-lg">📆</span>{open && <span>Calendar</span>}
-              </a>
-              <Link href="/settings" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800" onClick={() => window.innerWidth < 768 && setOpen(false)}>
-                <span className="w-6 text-center text-lg">⚙️</span>{open && <span>Settings</span>}
+              <Link href="/notifications" className="flex items-center gap-3 px-3 py-2 hover:bg-gray-800" onClick={() => window.innerWidth < 768 && setOpen(false)}>
+                <span className="w-6 text-center text-lg">🔔</span>{open && <span>Notifications</span>}
               </Link>
             </nav>
             <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-3 hover:bg-gray-800 border-t border-gray-800 shrink-0">
@@ -105,7 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
 
           {!isLogin && (
-            <div className="max-w-md mx-auto px-6 pb-10">
+            <div className="max-w-md mx-auto px-6 pb-10 mt-8">
               <h2 className="text-lg font-medium text-gray-900 mb-2">Have a suggestion?</h2>
               <textarea
                 value={suggestion}
