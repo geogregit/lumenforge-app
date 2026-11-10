@@ -1,47 +1,128 @@
 'use client'
 import Link from 'next/link'
+import { useState } from 'react'
+
+type AppItem = {
+  id: string
+  name: string
+  href: string
+  icon: string
+  external?: boolean
+  username?: string
+}
 
 export default function Dashboard() {
-  const apps = [
-    { name: 'Schedule Appointment', href: '/book', icon: 'https://img.icons8.com/color/96/calendar.png' },
-    { name: 'Clients', href: '/clients/list', icon: 'https://img.icons8.com/ios/96/user.png' },
-    { name: 'Routes', href: '/routes', icon: 'https://img.icons8.com/color/96/map.png' },
-    { name: 'Outlook', href: 'https://outlook.office.com', icon: 'https://img.icons8.com/color/96/microsoft-outlook-2019.png', external: true },
-    { name: 'Teams', href: 'https://teams.microsoft.com', icon: 'https://img.icons8.com/fluency/96/microsoft-teams-2019.png', external: true },
-    { name: 'Calendar', href: 'https://calendar.google.com', icon: 'https://img.icons8.com/color/96/calendar.png', external: true },
-  ]
+  const [apps, setApps] = useState<AppItem[]>([
+    { id: '1', name: 'Schedule Appointment', href: '/book', icon: 'https://img.icons8.com/color/96/calendar.png' },
+    { id: '2', name: 'Clients', href: '/clients/list', icon: 'https://img.icons8.com/ios/96/user.png' },
+    { id: '3', name: 'Routes', href: '/routes', icon: 'https://img.icons8.com/color/96/map.png' },
+    { id: '4', name: 'Outlook', href: 'https://outlook.office.com', icon: 'https://img.icons8.com/color/96/microsoft-outlook-2019.png', external: true },
+    { id: '5', name: 'Teams', href: 'https://teams.microsoft.com', icon: 'https://img.icons8.com/fluency/96/microsoft-teams-2019.png', external: true },
+    { id: '6', name: 'Microsoft 365', href: 'https://www.office.com', icon: 'https://img.icons8.com/color/96/microsoft-365.png', external: true },
+    { id: '7', name: 'Calendar', href: 'https://calendar.google.com', icon: 'https://img.icons8.com/color/96/calendar.png', external: true },
+  ])
+
+  const [selected, setSelected] = useState<AppItem | null>(null)
+  const [showAdd, setShowAdd] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newUrl, setNewUrl] = useState('')
+  const [newIcon, setNewIcon] = useState('')
+
+  function addApp() {
+    if (!newName || !newUrl) return
+    setApps(prev => [...prev, {
+      id: Date.now().toString(),
+      name: newName,
+      href: newUrl,
+      icon: newIcon || 'https://img.icons8.com/ios/96/link.png',
+      external: true
+    }])
+    setNewName('')
+    setNewUrl('')
+    setNewIcon('')
+    setShowAdd(false)
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-6 py-10">
-        <h1 className="text-3xl font-semibold text-gray-900 mb-8">My Apps</h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-semibold text-gray-900">My Apps</h1>
+          <button onClick={() => setShowAdd(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+            + Add App
+          </button>
+        </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
           {apps.map((app) => (
-            app.external ? (
-              <a
-                key={app.name}
-                href={app.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col items-center justify-center hover:shadow-md transition-shadow text-center"
+            <div key={app.id} className="relative bg-white rounded-xl border border-gray-200 p-6 flex flex-col items-center justify-center hover:shadow-md transition-shadow">
+              <button
+                onClick={() => setSelected(app)}
+                className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 p-1"
               >
-                <img src={app.icon} alt={app.name} className="w-16 h-16 mb-3 object-contain" />
-                <span className="text-sm font-medium text-gray-800">{app.name}</span>
-              </a>
-            ) : (
-              <Link
-                key={app.name}
-                href={app.href}
-                className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col items-center justify-center hover:shadow-md transition-shadow text-center"
-              >
-                <img src={app.icon} alt={app.name} className="w-16 h-16 mb-3 object-contain" />
-                <span className="text-sm font-medium text-gray-800">{app.name}</span>
-              </Link>
-            )
+                •••
+              </button>
+              {app.external ? (
+                <a href={app.href} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-center">
+                  <img src={app.icon} alt={app.name} className="w-16 h-16 mb-3 object-contain" />
+                  <span className="text-sm font-medium text-gray-800">{app.name}</span>
+                </a>
+              ) : (
+                <Link href={app.href} className="flex flex-col items-center text-center">
+                  <img src={app.icon} alt={app.name} className="w-16 h-16 mb-3 object-contain" />
+                  <span className="text-sm font-medium text-gray-800">{app.name}</span>
+                </Link>
+              )}
+            </div>
           ))}
         </div>
       </div>
+
+      {/* Side panel */}
+      {selected && (
+        <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setSelected(null)}>
+          <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl p-6 overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setSelected(null)} className="absolute top-4 right-4 text-gray-500 text-xl">×</button>
+            <div className="flex flex-col items-center mb-6">
+              <img src={selected.icon} alt="" className="w-16 h-16 mb-4" />
+              <h2 className="text-xl font-semibold">{selected.name}</h2>
+            </div>
+            <a
+              href={selected.href}
+              target={selected.external ? '_blank' : undefined}
+              className="block w-full text-center border border-gray-300 rounded-lg py-2 mb-6 hover:bg-gray-50"
+            >
+              Launch App
+            </a>
+            {selected.username && (
+              <div className="mb-4">
+                <label className="text-sm text-gray-600">Username</label>
+                <div className="flex gap-2 mt-1">
+                  <input readOnly value={selected.username} className="flex-1 border rounded px-3 py-2 bg-gray-50" />
+                  <button onClick={() => navigator.clipboard.writeText(selected.username!)} className="border rounded px-3">Copy</button>
+                </div>
+              </div>
+            )}
+            <p className="text-sm text-gray-500 bg-blue-50 p-3 rounded">This app is managed by your admin.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Add app modal */}
+      {showAdd && (
+        <div className="fixed inset-0 bg-black/30 z-40 flex items-center justify-center" onClick={() => setShowAdd(false)}>
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold mb-4">Add App</h3>
+            <input placeholder="App name" value={newName} onChange={e => setNewName(e.target.value)} className="w-full border rounded px-3 py-2 mb-+2" />
+            <input placeholder="URL (https://...)" value={newUrl} onChange={e => setNewUrl(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
+            <input placeholder="Icon URL (optional)" value={newIcon} onChange={e => setNewIcon(e.target.value)} className="w-full border rounded px-3 py-2 mb-4" />
+            <div className="flex gap-2">
+              <button onClick={addApp} className="flex-1 bg-blue-600 text-white py-2 rounded">Add</button>
+              <button onClick={() => setShowAdd(false)} className="flex-1 border py-2 rounded">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
