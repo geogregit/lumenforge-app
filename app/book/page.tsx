@@ -124,6 +124,11 @@ export default function Book() {
     return `${displayH}:${m.toString().padStart(2, '0')} ${ampm}`
   }
 
+  function roundTo30(mins: number) {
+    const remainder = mins % 30
+    return remainder === 0 ? mins : mins + (30 - remainder)
+  }
+
   async function generateRecommendation() {
     setStatus('Calculating...')
     const chosen = clients.filter(c => selectedClients.includes(c.ID) && c.address)
@@ -147,7 +152,8 @@ export default function Book() {
       const client = ordered[i]
       const drive = await getMins(prevAddress, client.address)
       const leaveMins = currentMins
-      const arriveMins = leaveMins + drive + 10
+      let arriveMins = leaveMins + drive + 10
+      arriveMins = roundTo30(arriveMins)
       recs.push({
         client,
         time: formatTime(arriveMins),

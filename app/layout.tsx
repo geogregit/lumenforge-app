@@ -58,7 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="flex min-h-screen">
         {!isLogin && (
-          <aside className={`bg-black text-white transition-all duration-300 fixed md:relative z-20 h-screen ${open ? 'w-64' : 'w-14'} flex flex-col`}>
+          <aside className={`bg-black text-white transition-all duration-300 fixed md:sticky top-0 z-20 h-screen ${open ? 'w-64' : 'w-14'} flex flex-col`}>
             <div className="p-3 flex items-center justify-between border-b border-gray-800 shrink-0">
               {open && <span className="font-bold text-lg">LumenForge</span>}
               <button onClick={() => setOpen(!open)} className="p-2 hover:bg-gray-800 rounded ml-auto">
@@ -95,7 +95,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </button>
           </aside>
         )}
-        <main className={`flex-1 bg-gray-50 ${!isLogin ? (open ? 'ml-64' : 'ml-14') : ''} md:ml-0 transition-all duration-300`}>
+        <main className={`flex-1 bg-gray-50 min-h-screen ${!isLogin ? (open ? 'ml-64' : 'ml-14') : ''} md:ml-0`}>
           {children}
           {!isLogin && pathname !== '/' && (
             <div className="max-w-md mx-auto px-6 pb-10 mt-8">
