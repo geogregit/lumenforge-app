@@ -9,10 +9,12 @@ export default function Book() {
   const [month, setMonth] = useState('')
   const [week, setWeek] = useState('')
   const [perWeek, setPerWeek] = useState('')
-  const [time, setTime] = useState('09:00')
+  const [startTime, setStartTime] = useState('09:00')
+  const [sortBy, setSortBy] = useState<'closest' | 'furthest'>('closest')
   const [officeAddress, setOfficeAddress] = useState('')
-  const [routeStops, setRouteStops] = useState<any[]>([])
+  const [recommendations, setRecommendations] = useState<any[]>([])
   const [status, setStatus] = useState('')
+  const [booking, setBooking] = useState(false)
   const supabase = createClient()
 
   const timeSlots = []
@@ -25,11 +27,6 @@ export default function Book() {
     loadClients()
     loadOffice()
   }, [])
-
-  useEffect(() => {
-    if (selectedClients.length > 0 && officeAddress) buildPreview()
-    else setRouteStops([])
-  }, [selectedClients, officeAddress])
 
   async function loadClients() {
     const { data } = await supabase.from('Clients').select('*')
@@ -59,27 +56,76 @@ export default function Book() {
     } catch { return 0 }
   }
 
-  async function buildPreview() {
-    const chosen = clients.filter(c => selectedClients.includes(c.ID) && c.address)
-    if (!chosen.length) return
-    const withDist = await Promise.all(chosen.map(async c => ({ ...c, dist: await getMins(officeAddress, c.address) })))
-    const ordered = [...withDist].sort((a, b) => a.dist - b.dist)
-    const stops: any[] = []
-    let loc = officeAddress
-    for (const c of ordered) {
-      const mins = await getMins(loc, c.address)
-      stops.push({ name: c.name, address: c.address, driveMin: mins })
-      loc = c.address
-    }
-    setRouteStops(stops)
-  }
-
-  function format(mins: number) {
+  function formatTime(totalMins: number) {
+    const mins = ((totalMins % 1440) + 1440) % 1440
     const h = Math.floor(mins / 60)
     const m = mins % 60
-    if (h === 0) return `${m} min`
-    if (m === 0) return `${h} hr`
-    return `${h} hr ${m} min`
+    const ampm = h < 12 ? 'AM' : 'PM'
+    const displayH = h % 12 || 12
+    return `${displayH}:${m.toString().padStart(2, '0')} ${ampm}`
+  }
+
+  async function generateRecommendation() {
+    setStatus('Calculating...')
+    const chosen = clients.filter(c => selectedClients.includes(c.ID) && c.address)
+    if (chosen.length === 0) {
+      setStatus('Select at least one client with an address')
+      return
+    }
+
+    const withDist = await Promise.all(chosen.map(async c => ({
+      ...c,
+      dist: await getMins(officeAddress, c.address)
+    })))
+    const ordered = [...withDist].sort((a, b) => sortBy === 'closest' ? a.dist - b.dist : b.dist - a.dist)
+
+    let [h, m] = startTime.split(':').map(Number)
+    let currentMins = h * 60 + m
+    const recs: any[] = []
+
+    for (const client of ordered) {
+      const drive = await getMins(officeAddress, client.address)
+      const arrive = currentMins
+      const leave = arrive - drive - 10
+      recs.push({
+        client,
+        time: formatTime(arrive),
+        timeValue: `${Math.floor(arrive / 60).toString().padStart(2, '0')}:${(arrive % 60).toString().padStart(2, '0')}`,
+        driveMin: drive,
+        leaveBy: formatTime(leave)
+      })
+      currentMins += 60
+    }
+
+    setRecommendations(recs)
+    setStatus('')
+  }
+
+  async function bookAll() {
+    if (recommendations.length === 0) return
+    setBooking(true)
+    setStatus('Booking appointments...')
+
+    try {
+      for (const rec of recommendations) {
+        await fetch('https://lumenforge-prod.app.n8n.cloud/webhook/ed413225-6b24-4ccf-8f52-b1f2db33e41b', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: rec.client.name,
+            email: rec.client.email,
+            date: month ? `${month}-01` : new Date().toISOString().slice(0, 10),
+            time: rec.timeValue
+          })
+        })
+      }
+      setStatus('Appointments booked and confirmation emails sent!')
+      setRecommendations([])
+      setSelectedClients([])
+    } catch (err) {
+      setStatus('Error booking some appointments')
+    }
+    setBooking(false)
   }
 
   return (
@@ -89,9 +135,7 @@ export default function Book() {
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Clients</label>
-          <div className="flex gap-2 mb-2">
-            <button type="button" onClick={selectAll} className="text-sm bg-gray-200 px-3 py-1 rounded">Select All</button>
-          </div>
+          <button type="button" onClick={selectAll} className="text-sm bg-gray-200 px-3 py-1 rounded mb-2">Select All</button>
           <div className="border max-h-40 overflow-y-auto p-2 space-y-1">
             {clients.map(c => (
               <label key={c.ID} className="flex items-center gap-2 text-sm text-gray-900">
@@ -114,43 +158,46 @@ export default function Book() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Week (optional)</label>
-          <select value={week} onChange={e => setWeek(e.target.value)} className="w-full p-2 border text-gray-900">
-            <option value="">Any week</option>
-            <option value="1">Week 1</option>
-            <option value="2">Week 2</option>
-            <option value="3">Week 3</option>
-            <option value="4">Week 4</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Clients per week (optional)</label>
-          <input type="number" min="1" value={perWeek} onChange={e => setPerWeek(e.target.value)} placeholder="e.g. 5" className="w-full p-2 border text-gray-900" />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
-          <select value={time} onChange={e => setTime(e.target.value)} className="w-full p-2 border text-gray-900">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Start time</label>
+          <select value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full p-2 border text-gray-900">
             {timeSlots.map(slot => (
               <option key={slot.value} value={slot.value}>{slot.label}</option>
             ))}
           </select>
         </div>
 
-        <button type="button" onClick={buildPreview} className="w-full bg-blue-600 text-white p-2">Generate Recommendation</button>
-        {status && <p className="text-sm">{status}</p>}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Sort route by</label>
+          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className="w-full p-2 border text-gray-900">
+            <option value="closest">Closest to office first</option>
+            <option value="furthest">Furthest from office first</option>
+          </select>
+        </div>
+
+        <button type="button" onClick={generateRecommendation} className="w-full bg-blue-600 text-white p-2">
+          Generate Recommendation
+        </button>
+        {status && <p className="text-sm text-gray-700">{status}</p>}
       </div>
 
-      {routeStops.length > 0 && (
+      {recommendations.length > 0 && (
         <div className="mt-6 p-4 border bg-white">
-          <h2 className="font-medium text-gray-900 mb-3">Route Preview</h2>
-          {routeStops.map((stop, i) => (
-            <div key={i} className="mb-2 pb-2 border-b last:border-0 text-sm text-gray-700">
-              <p className="font-medium text-gray-900">{i + 1}. {stop.name}</p>
-              <p>Drive: {format(stop.driveMin)}</p>
+          <h2 className="font-medium text-gray-900 mb-3">Recommended Schedule</h2>
+          {recommendations.map((rec, i) => (
+            <div key={i} className="mb-3 pb-3 border-b last:border-0 text-sm">
+              <p className="font-medium text-gray-900">{i + 1}. {rec.client.name}</p>
+              <p className="text-gray-700">Book at: {rec.time}</p>
+              <p className="text-gray-700">Leave office by: {rec.leaveBy}</p>
+              <p className="text-gray-700">Drive: {rec.driveMin} min</p>
             </div>
           ))}
+          <button
+            onClick={bookAll}
+            disabled={booking}
+            className="w-full bg-green-600 text-white p-2 mt-2 disabled:opacity-50"
+          >
+            {booking ? 'Booking...' : 'Book All Appointments'}
+          </button>
         </div>
       )}
     </div>
