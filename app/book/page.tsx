@@ -6,10 +6,14 @@ export default function Book() {
   const [clients, setClients] = useState<any[]>([])
   const [selectedClients, setSelectedClients] = useState<string[]>([])
   const [showAdd, setShowAdd] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newEmail, setNewEmail] = useState('')
-  const [newPhone, setNewPhone] = useState('')
-  const [newAddress, setNewAddress] = useState('')
+  const [editing, setEditing] = useState<any>(null)
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [street, setStreet] = useState('')
+  const [city, setCity] = useState('')
+  const [state, setState] = useState('')
   const [month, setMonth] = useState('')
   const [startTime, setStartTime] = useState('09:00')
   const [sortBy, setSortBy] = useState<'closest' | 'furthest'>('closest')
@@ -42,28 +46,57 @@ export default function Book() {
     if (data?.office_address) setOfficeAddress(data.office_address)
   }
 
-  async function addClient() {
-    if (!newName || !newEmail) {
-      alert('Name and email are required')
+  function openEdit(client: any) {
+    const nameParts = (client.name || '').split(' ')
+    setFirstName(nameParts[0] || '')
+    setLastName(nameParts.slice(1).join(' ') || '')
+    setEmail(client.email || '')
+    setPhone(client.phone || '')
+    const addrParts = (client.address || '').split(',').map((s: string) => s.trim())
+    setStreet(addrParts[0] || '')
+    setCity(addrParts[1] || '')
+    setState(addrParts[2] || '')
+    setEditing(client)
+    setShowAdd(true)
+  }
+
+  async function saveClient() {
+    if (!firstName || !lastName || !email) {
+      alert('First name, last name, and email are required')
       return
     }
+    const fullName = `${firstName} ${lastName}`.trim()
+    const fullAddress = [street, city, state].filter(Boolean).join(', ')
     const { data: { user } } = await supabase.auth.getUser()
-    const { error } = await supabase.from('Clients').insert({
-      name: newName,
-      email: newEmail,
-      phone: newPhone || null,
-      address: newAddress || null,
-      user_ID: user?.id
-    })
-    if (error) alert(error.message)
-    else {
-      setNewName('')
-      setNewEmail('')
-      setNewPhone('')
-      setNewAddress('')
-      setShowAdd(false)
-      loadClients()
+
+    if (editing) {
+      const { error } = await supabase.from('Clients').update({
+        name: fullName,
+        email,
+        phone: phone || null,
+        address: fullAddress || null
+      }).eq('ID', editing.ID)
+      if (error) alert(error.message)
+    } else {
+      const { error } = await supabase.from('Clients').insert({
+        name: fullName,
+        email,
+        phone: phone || null,
+        address: fullAddress || null,
+        user_ID: user?.id
+      })
+      if (error) alert(error.message)
     }
+    setFirstName('')
+    setLastName('')
+    setEmail('')
+    setPhone('')
+    setStreet('')
+    setCity('')
+    setState('')
+    setEditing(null)
+    setShowAdd(false)
+    loadClients()
   }
 
   function toggleClient(id: string) {
@@ -113,18 +146,18 @@ export default function Book() {
     for (let i = 0; i < ordered.length; i++) {
       const client = ordered[i]
       const drive = await getMins(prevAddress, client.address)
-      const arrive = currentMins
-      const leave = arrive - drive - 10
+      const leaveMins = currentMins
+      const arriveMins = leaveMins + drive + 10
       recs.push({
         client,
-        time: formatTime(arrive),
-        timeValue: `${Math.floor(arrive / 60).toString().padStart(2, '0')}:${(arrive % 60).toString().padStart(2, '0')}`,
+        time: formatTime(arriveMins),
+        timeValue: `${Math.floor(arriveMins / 60).toString().padStart(2, '0')}:${(arriveMins % 60).toString().padStart(2, '0')}`,
         driveMin: drive,
-        leaveBy: formatTime(leave),
+        leaveBy: formatTime(leaveMins),
         isFirst: i === 0
       })
       prevAddress = client.address
-      currentMins += 60
+      currentMins = arriveMins + 60
     }
 
     setRecommendations(recs)
@@ -166,17 +199,20 @@ export default function Book() {
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="text-sm font-medium text-gray-700">Clients</label>
-            <button type="button" onClick={() => setShowAdd(true)} className="text-sm bg-blue-600 text-white px-3 py-1 rounded">
+            <button type="button" onClick={() => { setEditing(null); setShowAdd(true) }} className="text-sm bg-blue-600 text-white px-3 py-1 rounded">
               Add Client
             </button>
           </div>
           <button type="button" onClick={selectAll} className="text-sm bg-gray-200 px-3 py-1 rounded mb-2">Select All</button>
-          <div className="border max-h-40 overflow-y-auto p-2 space-y-1">
+          <div className="border max-h-48 overflow-y-auto p-2 space-y-1">
             {clients.map(c => (
-              <label key={c.ID} className="flex items-center gap-2 text-sm text-gray-900">
-                <input type="checkbox" checked={selectedClients.includes(c.ID)} onChange={() => toggleClient(c.ID)} />
-                {c.name}
-              </label>
+              <div key={c.ID} className="flex items-center justify-between text-sm text-gray-900">
+                <label className="flex items-center gap-2 flex-1">
+                  <input type="checkbox" checked={selectedClients.includes(c.ID)} onChange={() => toggleClient(c.ID)} />
+                  {c.name}
+                </label>
+                <button onClick={() => openEdit(c)} className="text-blue-600 text-xs">Edit</button>
+              </div>
             ))}
           </div>
         </div>
@@ -187,7 +223,7 @@ export default function Book() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Start time</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Leave office at</label>
           <select value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full p-2 border text-gray-900">
             {timeSlots.map(slot => (
               <option key={slot.value} value={slot.value}>{slot.label}</option>
@@ -233,13 +269,16 @@ export default function Book() {
       {showAdd && (
         <div className="fixed inset-0 bg-black/30 z-40 flex items-center justify-center" onClick={() => setShowAdd(false)}>
           <div className="bg-white rounded-xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold mb-4">Add Client</h3>
-            <input placeholder="Name" value={newName} onChange={e => setNewName(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
-            <input placeholder="Email" value={newEmail} onChange={e => setNewEmail(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
-            <input placeholder="Phone (optional)" value={newPhone} onChange={e => setNewPhone(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
-            <input placeholder="Address" value={newAddress} onChange={e => setNewAddress(e.target.value)} className="w-full border rounded px-3 py-2 mb-4" />
+            <h3 className="text-lg font-semibold mb-4">{editing ? 'Edit Client' : 'Add Client'}</h3>
+            <input placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
+            <input placeholder="Last name" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
+            <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
+            <input placeholder="Phone (optional)" value={phone} onChange={e => setPhone(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
+            <input placeholder="Street address" value={street} onChange={e => setStreet(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
+            <input placeholder="City" value={city} onChange={e => setCity(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
+            <input placeholder="State" value={state} onChange={e => setState(e.target.value)} className="w-full border rounded px-3 py-2 mb-4" />
             <div className="flex gap-2">
-              <button onClick={addClient} className="flex-1 bg-blue-600 text-white py-2 rounded">Add</button>
+              <button onClick={saveClient} className="flex-1 bg-blue-600 text-white py-2 rounded">{editing ? 'Save' : 'Add'}</button>
               <button onClick={() => setShowAdd(false)} className="flex-1 border py-2 rounded">Cancel</button>
             </div>
           </div>

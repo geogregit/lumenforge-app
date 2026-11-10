@@ -13,7 +13,6 @@ type AppItem = {
 export default function Dashboard() {
   const [apps] = useState<AppItem[]>([
     { id: '1', name: 'Schedule Appointment', href: '/book', icon: 'https://img.icons8.com/ios/96/calendar.png' },
-    { id: '2', name: 'Clients', href: '/clients/list', icon: 'https://img.icons8.com/ios/96/user.png' },
     { id: '3', name: 'Routes', href: '/routes', icon: 'https://img.icons8.com/ios/96/map.png' },
     { id: '4', name: 'Outlook', href: 'https://outlook.office.com', icon: 'https://img.icons8.com/color/96/microsoft-outlook-2019.png', external: true },
     { id: '5', name: 'Teams', href: 'https://teams.microsoft.com', icon: 'https://img.icons8.com/fluency/96/microsoft-teams-2019.png', external: true },
