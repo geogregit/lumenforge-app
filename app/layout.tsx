@@ -11,6 +11,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const router = useRouter()
   const supabase = createClient()
   const isLogin = pathname === '/login'
+  const [suggestion, setSuggestion] = useState('')
+  const [sent, setSent] = useState('')
 
   useEffect(() => {
     const isMobile = window.innerWidth < 768
@@ -40,6 +42,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   async function handleLogout() {
     await supabase.auth.signOut()
     router.push('/login')
+  }
+
+  function sendSuggestion() {
+    if (!suggestion.trim()) return
+    const subject = encodeURIComponent('LumenForge Suggestion')
+    const body = encodeURIComponent(suggestion)
+    window.location.href = `mailto:green.george@live.com?subject=${subject}&body=${body}`
+    setSent('Opened in your email app')
+    setSuggestion('')
+    setTimeout(() => setSent(''), 4000)
   }
 
   return (
@@ -89,7 +101,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </button>
           </aside>
         )}
-        <main className={`flex-1 bg-gray-50 ${!isLogin ? (open ? 'ml-64' : 'ml-14') : ''} md:ml-0 transition-all duration-300`}>{children}</main>
+        <main className={`flex-1 bg-gray-50 ${!isLogin ? (open ? 'ml-64' : 'ml-14') : ''} md:ml-0 transition-all duration-300`}>
+          {children}
+
+          {!isLogin && (
+            <div className="max-w-md mx-auto px-6 pb-10">
+              <h2 className="text-lg font-medium text-gray-900 mb-2">Have a suggestion?</h2>
+              <textarea
+                value={suggestion}
+                onChange={e => setSuggestion(e.target.value)}
+                placeholder="Tell me what to improve or add..."
+                className="w-full border rounded-lg p-3 text-sm h-24 mb-2"
+              />
+              <button onClick={sendSuggestion} className="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm">
+                Send Suggestion
+              </button>
+              {sent && <p className="text-sm text-green-600 mt-2">{sent}</p>}
+            </div>
+          )}
+        </main>
       </body>
     </html>
   )
