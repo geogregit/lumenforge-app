@@ -5,10 +5,12 @@ import { useEffect, useState } from 'react'
 export default function Book() {
   const [clients, setClients] = useState<any[]>([])
   const [selectedClients, setSelectedClients] = useState<string[]>([])
-  const [manualName, setManualName] = useState('')
+  const [showAdd, setShowAdd] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newEmail, setNewEmail] = useState('')
+  const [newPhone, setNewPhone] = useState('')
+  const [newAddress, setNewAddress] = useState('')
   const [month, setMonth] = useState('')
-  const [week, setWeek] = useState('')
-  const [perWeek, setPerWeek] = useState('')
   const [startTime, setStartTime] = useState('09:00')
   const [sortBy, setSortBy] = useState<'closest' | 'furthest'>('closest')
   const [officeAddress, setOfficeAddress] = useState('')
@@ -38,6 +40,30 @@ export default function Book() {
     if (!user) return
     const { data } = await supabase.from('profiles').select('office_address').eq('id', user.id).single()
     if (data?.office_address) setOfficeAddress(data.office_address)
+  }
+
+  async function addClient() {
+    if (!newName || !newEmail) {
+      alert('Name and email are required')
+      return
+    }
+    const { data: { user } } = await supabase.auth.getUser()
+    const { error } = await supabase.from('Clients').insert({
+      name: newName,
+      email: newEmail,
+      phone: newPhone || null,
+      address: newAddress || null,
+      user_ID: user?.id
+    })
+    if (error) alert(error.message)
+    else {
+      setNewName('')
+      setNewEmail('')
+      setNewPhone('')
+      setNewAddress('')
+      setShowAdd(false)
+      loadClients()
+    }
   }
 
   function toggleClient(id: string) {
@@ -82,9 +108,11 @@ export default function Book() {
     let [h, m] = startTime.split(':').map(Number)
     let currentMins = h * 60 + m
     const recs: any[] = []
+    let prevAddress = officeAddress
 
-    for (const client of ordered) {
-      const drive = await getMins(officeAddress, client.address)
+    for (let i = 0; i < ordered.length; i++) {
+      const client = ordered[i]
+      const drive = await getMins(prevAddress, client.address)
       const arrive = currentMins
       const leave = arrive - drive - 10
       recs.push({
@@ -92,8 +120,10 @@ export default function Book() {
         time: formatTime(arrive),
         timeValue: `${Math.floor(arrive / 60).toString().padStart(2, '0')}:${(arrive % 60).toString().padStart(2, '0')}`,
         driveMin: drive,
-        leaveBy: formatTime(leave)
+        leaveBy: formatTime(leave),
+        isFirst: i === 0
       })
+      prevAddress = client.address
       currentMins += 60
     }
 
@@ -119,7 +149,7 @@ export default function Book() {
           })
         })
       }
-      setStatus('Appointments booked and confirmation emails sent!')
+      setStatus('Appointments booked! Calendar events added and confirmation emails sent.')
       setRecommendations([])
       setSelectedClients([])
     } catch (err) {
@@ -134,7 +164,12 @@ export default function Book() {
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Clients</label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-sm font-medium text-gray-700">Clients</label>
+            <button type="button" onClick={() => setShowAdd(true)} className="text-sm bg-blue-600 text-white px-3 py-1 rounded">
+              Add Client
+            </button>
+          </div>
           <button type="button" onClick={selectAll} className="text-sm bg-gray-200 px-3 py-1 rounded mb-2">Select All</button>
           <div className="border max-h-40 overflow-y-auto p-2 space-y-1">
             {clients.map(c => (
@@ -144,12 +179,6 @@ export default function Book() {
               </label>
             ))}
           </div>
-          <input
-            placeholder="Or type a client name"
-            value={manualName}
-            onChange={e => setManualName(e.target.value)}
-            className="w-full mt-2 p-2 border text-gray-900"
-          />
         </div>
 
         <div>
@@ -187,7 +216,7 @@ export default function Book() {
             <div key={i} className="mb-3 pb-3 border-b last:border-0 text-sm">
               <p className="font-medium text-gray-900">{i + 1}. {rec.client.name}</p>
               <p className="text-gray-700">Book at: {rec.time}</p>
-              <p className="text-gray-700">Leave office by: {rec.leaveBy}</p>
+              <p className="text-gray-700">{rec.isFirst ? 'Leave office by' : 'Leave previous by'}: {rec.leaveBy}</p>
               <p className="text-gray-700">Drive: {rec.driveMin} min</p>
             </div>
           ))}
@@ -198,6 +227,22 @@ export default function Book() {
           >
             {booking ? 'Booking...' : 'Book All Appointments'}
           </button>
+        </div>
+      )}
+
+      {showAdd && (
+        <div className="fixed inset-0 bg-black/30 z-40 flex items-center justify-center" onClick={() => setShowAdd(false)}>
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold mb-4">Add Client</h3>
+            <input placeholder="Name" value={newName} onChange={e => setNewName(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
+            <input placeholder="Email" value={newEmail} onChange={e => setNewEmail(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
+            <input placeholder="Phone (optional)" value={newPhone} onChange={e => setNewPhone(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
+            <input placeholder="Address" value={newAddress} onChange={e => setNewAddress(e.target.value)} className="w-full border rounded px-3 py-2 mb-4" />
+            <div className="flex gap-2">
+              <button onClick={addClient} className="flex-1 bg-blue-600 text-white py-2 rounded">Add</button>
+              <button onClick={() => setShowAdd(false)} className="flex-1 border py-2 rounded">Cancel</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
