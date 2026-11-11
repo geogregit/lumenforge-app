@@ -127,6 +127,12 @@ export default function Book() {
     return `${displayH}:${m.toString().padStart(2, '0')} ${ampm}`
   }
 
+  function formatDate(dateStr: string) {
+    if (!dateStr) return ''
+    const d = new Date(dateStr + 'T00:00:00')
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
   function roundTo30(mins: number) {
     const remainder = mins % 30
     return remainder === 0 ? mins : mins + (30 - remainder)
@@ -213,6 +219,8 @@ export default function Book() {
     setBooking(false)
   }
 
+  const displayDate = apptDate ? formatDate(apptDate) : 'the selected date'
+
   return (
     <div className="max-w-md mx-auto mt-10 p-6">
       <h1 className="text-2xl mb-4 text-gray-900">Schedule Appointment</h1>
@@ -225,88 +233,4 @@ export default function Book() {
               Add Client
             </button>
           </div>
-          <button type="button" onClick={selectAll} className="text-sm bg-gray-200 px-3 py-1 rounded mb-2">Select All</button>
-          <div className="border max-h-48 overflow-y-auto p-2 space-y-1">
-            {clients.map(c => (
-              <div key={c.ID} className="flex items-center justify-between text-sm text-gray-900">
-                <label className="flex items-center gap-2 flex-1">
-                  <input type="checkbox" checked={selectedClients.includes(c.ID)} onChange={() => toggleClient(c.ID)} />
-                  {c.name}
-                </label>
-                <button onClick={() => openEdit(c)} className="text-blue-600 text-xs">Edit</button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Appointment date</label>
-          <input type="date" value={apptDate} onChange={e => setApptDate(e.target.value)} className="w-full p-2 border text-gray-900" />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Leave office at</label>
-          <select value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full p-2 border text-gray-900">
-            {timeSlots.map(slot => (
-              <option key={slot.value} value={slot.value}>{slot.label}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Sort route by</label>
-          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className="w-full p-2 border text-gray-900">
-            <option value="closest">Closest to office first</option>
-            <option value="furthest">Furthest from office first</option>
-          </select>
-        </div>
-
-        <button type="button" onClick={generateRecommendation} className="w-full bg-blue-600 text-white p-2">
-          Generate Recommendation
-        </button>
-        {status && <p className="text-sm text-gray-700">{status}</p>}
-      </div>
-
-      {recommendations.length > 0 && (
-        <div className="mt-6 p-4 border bg-white">
-          <h2 className="font-medium text-gray-900 mb-3">Recommended Schedule</h2>
-          {recommendations.map((rec, i) => (
-            <div key={i} className="mb-3 pb-3 border-b last:border-0 text-sm">
-              <p className="font-medium text-gray-900">{i + 1}. {rec.client.name}</p>
-              <p className="text-gray-700">Book at: {rec.time}</p>
-              <p className="text-gray-700">{rec.isFirst ? 'Leave office by' : 'Leave previous by'}: {rec.leaveBy}</p>
-              <p className="text-gray-700">Drive: {rec.driveMin} min</p>
-            </div>
-          ))}
-          <button
-            onClick={bookAll}
-            disabled={booking}
-            className="w-full bg-green-600 text-white p-2 mt-2 disabled:opacity-50"
-          >
-            {booking ? 'Booking...' : 'Book All Appointments'}
-          </button>
-        </div>
-      )}
-
-      {showAdd && (
-        <div className="fixed inset-0 bg-black/30 z-40 flex items-center justify-center" onClick={() => setShowAdd(false)}>
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold mb-4">{editing ? 'Edit Client' : 'Add Client'}</h3>
-            <input placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
-            <input placeholder="Last name" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
-            <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
-            <input placeholder="Phone (optional)" value={phone} onChange={e => setPhone(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
-            <input placeholder="Street address" value={street} onChange={e => setStreet(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
-            <input placeholder="City" value={city} onChange={e => setCity(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
-            <input placeholder="State" value={state} onChange={e => setState(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
-            <input placeholder="Zip code" value={zip} onChange={e => setZip(e.target.value)} className="w-full border rounded px-3 py-2 mb-4" />
-            <div className="flex gap-2">
-              <button onClick={saveClient} className="flex-1 bg-blue-600 text-white py-2 rounded">{editing ? 'Save' : 'Add'}</button>
-              <button onClick={() => setShowAdd(false)} className="flex-1 border py-2 rounded">Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
+          <button type="button" onClick={selectAll} className="text-sm bg-gray-200 px-3 py-1 rounded 
