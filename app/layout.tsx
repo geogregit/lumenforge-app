@@ -3,9 +3,9 @@ import { createClient } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import './globals.css'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useState(true)
   const [user, setUser] = useState<any>(null)
   const pathname = usePathname()
   const supabase = createClient()
@@ -27,10 +27,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="flex">
           <div className="w-64 bg-black text-white min-h-screen p-4">
             <div className="font-bold mb-6">LumenForge</div>
-            <Link href="/" className="block py-2 hover:bg-gray-800 px-2">Dashboard</Link>
-            <Link href="/notifications" className="block py-2 hover:bg-gray-800 px-2">Notifications</Link>
-            <div className="mt-8 text-xs text-gray-400">{user?.email}</div>
-            <button onClick={handleLogout} className="mt-4 text-xs text-gray-400">Logout</button>
+            <Link href="/" className="block py-2">Dashboard</Link>
+            <Link href="/notifications" className="block py-2">Notifications</Link>
+            <button onClick={handleLogout} className="mt-4 text-xs">Logout</button>
           </div>
           <div className="flex-1">
             {children}
