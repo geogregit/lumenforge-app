@@ -28,17 +28,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="w-64 bg-black text-white flex flex-col">
             <div className="p-4 font-bold">LumenForge</div>
             <div className="flex-1">
-              <Link href="/" className="flex items-center py-2 px-4 hover:bg-gray-800">
-                <span className="text-xl mr-3">🏠</span>Dashboard
-              </Link>
-              <Link href="/notifications" className="flex items-center py-2 px-4 hover:bg-gray-800">
-                <span className="text-xl mr-3">🔔</span>Notifications
-              </Link>
+              <Link href="/" className="block py-2 px-4 hover:bg-gray-800">Dashboard</Link>
+              <Link href="/notifications" className="block py-2 px-4 hover:bg-gray-800">Notifications</Link>
             </div>
             <div className="border-t border-gray-700 p-4">
               <div className="flex items-center">
-                <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center text-sm font-bold">
-                  {user?.email?.[0]?.toUpperCase() || 'U'}
+                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                  </svg>
                 </div>
                 <div className="ml-3 text-xs">
                   <div>{user?.email?.split('@')[0]}</div>
