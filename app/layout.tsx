@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
-  const [userPopup, setUserPopup] = useState(false)
+  const [userMenu, setUserMenu] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -101,9 +101,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </Link>
             </nav>
 
-            <div className="border-t border-gray-800">
+            <div className="relative border-t border-gray-800">
               <button
-                onClick={() => setUserPopup(true)}
+                onClick={() => setUserMenu(!userMenu)}
                 className="w-full flex items-center gap-3 px-3 py-3 hover:bg-gray-800 text-left"
               >
                 <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-sm font-medium">
@@ -116,25 +116,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   </div>
                 )}
               </button>
+
+              {userMenu && (
+                <div className="absolute bottom-full left-0 mb-1 bg-white text-gray-900 rounded-lg shadow-lg border w-56 py-1 z-50">
+                  <div className="px-4 py-3 border-b">
+                    <p className="font-medium text-sm">{userName}</p>
+                    <p className="text-xs text-gray-500">{userEmail}</p>
+                  </div>
+                  <Link href="/settings" onClick={() => setUserMenu(false)} className="block px-4 py-2 text-sm text-blue-600 hover:bg-gray-50">Account settings</Link>
+                  <Link href="/notifications" onClick={() => setUserMenu(false)} className="block px-4 py-2 text-sm text-blue-600 hover:bg-gray-50">Recent activity</Link>
+                  <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-50">Sign out</button>
+                </div>
+              )}
             </div>
           </aside>
-        )}
-
-        {/* User popup */}
-        {userPopup && (
-          <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center" onClick={() => setUserPopup(false)}>
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-xs" onClick={e => e.stopPropagation()}>
-              <div className="px-5 py-4 border-b">
-                <p className="font-semibold text-lg text-gray-900">{userName}</p>
-                <p className="text-sm text-gray-500">{userEmail}</p>
-              </div>
-              <div className="py-2">
-                <Link href="/settings" onClick={() => setUserPopup(false)} className="block px-5 py-2.5 text-sm text-blue-600 hover:bg-gray-50">Account settings</Link>
-                <Link href="/notifications" onClick={() => setUserPopup(false)} className="block px-5 py-2.5 text-sm text-blue-600 hover:bg-gray-50">Recent activity</Link>
-                <button onClick={handleLogout} className="w-full text-left px-5 py-2.5 text-sm text-blue-600 hover:bg-gray-50">Sign out</button>
-              </div>
-            </div>
-          </div>
         )}
 
         <main className={`flex-1 bg-gray-50 min-h-screen ${!isLogin ? (open ? 'ml-64' : 'ml-14') : ''} md:ml-0`}>
