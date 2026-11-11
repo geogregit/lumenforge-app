@@ -22,11 +22,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   if (pathname === '/login') return <>{children}</>
 
+  let sidebarClass = 'fixed top-0 left-0 h-full bg-black text-white z-40 transition-all duration-200 flex flex-col '
+  sidebarClass += open ? 'w-64' : 'w-16'
+
+  let mainClass = 'flex-1 transition-all duration-200 '
+  mainClass += open ? 'ml-64' : 'ml-16'
+
   return (
     <html lang="en">
       <body className="bg-gray-50">
         <div className="flex min-h-screen">
-          <div className={`fixed top-0 left-0 h-full bg-black text-white z-40 transition-all duration-200 ${open ? 'w-64' : 'w-16'} flex flex-col`}>
+          <div className={sidebarClass}>
             <div className="flex items-center justify-between p-4 border-b border-gray-700">
               {open && <span className="font-bold">LumenForge</span>}
               <button onClick={() => setOpen(!open)} className="text-white">
@@ -65,7 +71,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </div>
 
-          <div className={`flex-1 ${open ? 'ml-64' : 'ml-16'} transition-all duration-200`}>
+          <div className={mainClass}>
             {children}
           </div>
         </div>
