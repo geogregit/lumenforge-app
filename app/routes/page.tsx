@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react'
 
 export default function Routes() {
   const [clients, setClients] = useState<any[]>([])
+  const [appointments, setAppointments] = useState<any[]>([])
   const [selectedClients, setSelectedClients] = useState<string[]>([])
+  const [selectedAppts, setSelectedAppts] = useState<string[]>([])
   const [showAdd, setShowAdd] = useState(false)
   const [editing, setEditing] = useState<any>(null)
   const [firstName, setFirstName] = useState('')
@@ -15,7 +17,6 @@ export default function Routes() {
   const [city, setCity] = useState('')
   const [state, setState] = useState('')
   const [zip, setZip] = useState('')
-  const [date, setDate] = useState('')
   const [startTime, setStartTime] = useState('08:00')
   const [sortBy, setSortBy] = useState<'closest' | 'furthest'>('closest')
   const [officeAddress, setOfficeAddress] = useState('')
@@ -25,12 +26,18 @@ export default function Routes() {
 
   useEffect(() => {
     loadClients()
+    loadAppointments()
     loadOffice()
   }, [])
 
   async function loadClients() {
     const { data } = await supabase.from('Clients').select('*')
     setClients(data || [])
+  }
+
+  async function loadAppointments() {
+    const { data } = await supabase.from('appointments').select('*').order('appointment_date', { ascending: true })
+    setAppointments(data || [])
   }
 
   async function loadOffice() {
@@ -97,8 +104,16 @@ export default function Routes() {
     setSelectedClients(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id])
   }
 
-  function selectAll() {
+  function toggleAppt(id: string) {
+    setSelectedAppts(prev => prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id])
+  }
+
+  function selectAllClients() {
     setSelectedClients(clients.map(c => c.ID))
+  }
+
+  function selectAllAppts() {
+    setSelectedAppts(appointments.map(a => a.id))
   }
 
   async function getMins(from: string, to: string) {
@@ -120,9 +135,23 @@ export default function Routes() {
 
   async function buildPreview() {
     setStatus('Calculating...')
-    const chosen = clients.filter(c => selectedClients.includes(c.ID) && c.address)
+    let chosen: any[] = []
+
+    if (selectedAppts.length > 0) {
+      chosen = appointments.filter(a => selectedAppts.includes(a.id) && a.client_address).map(a => ({
+        name: a.client_name,
+        address: a.client_address,
+        time: a.appointment_time
+      }))
+    } else {
+      chosen = clients.filter(c => selectedClients.includes(c.ID) && c.address).map(c => ({
+        name: c.name,
+        address: c.address
+      }))
+    }
+
     if (chosen.length === 0) {
-      setStatus('Select at least one client with an address')
+      setStatus('Select clients or appointments with addresses')
       setStops([])
       return
     }
@@ -145,6 +174,7 @@ export default function Routes() {
       const arrive = leave + drive + 10
       result.push({
         name: c.name,
+        time: c.time,
         driveMin: drive,
         leaveBy: formatTime(leave),
         arriveAt: formatTime(arrive),
@@ -164,13 +194,13 @@ export default function Routes() {
       <div className="space-y-4">
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="text-sm font-medium text-gray-700">Select clients for route</label>
+            <label className="text-sm font-medium text-gray-700">Clients</label>
             <button type="button" onClick={() => { setEditing(null); setShowAdd(true) }} className="text-sm bg-blue-600 text-white px-3 py-1 rounded">
               Add Client
             </button>
           </div>
-          <button type="button" onClick={selectAll} className="text-sm bg-gray-200 px-3 py-1 rounded mb-2">Select All</button>
-          <div className="border max-h-48 overflow-y-auto p-2 space-y-1">
+          <button type="button" onClick={selectAllClients} className="text-sm bg-gray-200 px-3 py-1 rounded mb-2">Select All</button>
+          <div className="border max-h-40 overflow-y-auto p-2 space-y-1">
             {clients.map(c => (
               <div key={c.ID} className="flex items-center justify-between text-sm text-gray-900">
                 <label className="flex items-center gap-2 flex-1">
@@ -184,8 +214,22 @@ export default function Routes() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Date (optional)</label>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full p-2 border text-gray-900" />
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-sm font-medium text-gray-700">Appointments</label>
+            <button type="button" onClick={selectAllAppts} className="text-sm bg-gray-200 px-3 py-1 rounded">Select All</button>
+          </div>
+          <div className="border max-h-40 overflow-y-auto p-2 space-y-1">
+            {appointments.length === 0 ? (
+              <p className="text-sm text-gray-500">No booked appointments yet</p>
+            ) : (
+              appointments.map(a => (
+                <label key={a.id} className="flex items-center gap-2 text-sm text-gray-900">
+                  <input type="checkbox" checked={selectedAppts.includes(a.id)} onChange={() => toggleAppt(a.id)} />
+                  {a.client_name} — {a.appointment_time} ({a.appointment_date})
+                </label>
+              ))
+            )}
+          </div>
         </div>
 
         <div>
@@ -211,6 +255,7 @@ export default function Routes() {
           {stops.map((s, i) => (
             <div key={i} className="mb-3 pb-3 border-b last:border-0 text-sm">
               <p className="font-medium text-gray-900">{i + 1}. {s.name}</p>
+              {s.time && <p className="text-gray-700">Scheduled: {s.time}</p>}
               <p className="text-gray-700">Drive: {s.driveMin} min</p>
               <p className="text-gray-700">{s.isFirst ? 'Leave office by' : 'Leave previous by'}: {s.leaveBy}</p>
               <p className="text-gray-700">Arrive by: {s.arriveAt}</p>
