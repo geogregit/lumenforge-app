@@ -14,7 +14,8 @@ export default function Book() {
   const [street, setStreet] = useState('')
   const [city, setCity] = useState('')
   const [state, setState] = useState('')
-  const [month, setMonth] = useState('')
+  const [zip, setZip] = useState('')
+  const [apptDate, setApptDate] = useState('')
   const [startTime, setStartTime] = useState('09:00')
   const [sortBy, setSortBy] = useState<'closest' | 'furthest'>('closest')
   const [officeAddress, setOfficeAddress] = useState('')
@@ -56,6 +57,7 @@ export default function Book() {
     setStreet(addrParts[0] || '')
     setCity(addrParts[1] || '')
     setState(addrParts[2] || '')
+    setZip(addrParts[3] || '')
     setEditing(client)
     setShowAdd(true)
   }
@@ -66,7 +68,7 @@ export default function Book() {
       return
     }
     const fullName = `${firstName} ${lastName}`.trim()
-    const fullAddress = [street, city, state].filter(Boolean).join(', ')
+    const fullAddress = [street, city, state, zip].filter(Boolean).join(', ')
     const { data: { user } } = await supabase.auth.getUser()
 
     if (editing) {
@@ -94,6 +96,7 @@ export default function Book() {
     setStreet('')
     setCity('')
     setState('')
+    setZip('')
     setEditing(null)
     setShowAdd(false)
     loadClients()
@@ -175,6 +178,9 @@ export default function Book() {
     setBooking(true)
     setStatus('Booking appointments...')
 
+    const { data: { user } } = await supabase.auth.getUser()
+    const dateToUse = apptDate || new Date().toISOString().slice(0, 10)
+
     try {
       for (const rec of recommendations) {
         await fetch('https://lumenforge-prod.app.n8n.cloud/webhook/ed413225-6b24-4ccf-8f52-b1f2db33e41b', {
@@ -183,9 +189,19 @@ export default function Book() {
           body: JSON.stringify({
             name: rec.client.name,
             email: rec.client.email,
-            date: month ? `${month}-01` : new Date().toISOString().slice(0, 10),
+            date: dateToUse,
             time: rec.timeValue
           })
+        })
+
+        await supabase.from('appointments').insert({
+          user_id: user?.id,
+          client_id: rec.client.ID,
+          client_name: rec.client.name,
+          client_email: rec.client.email,
+          client_address: rec.client.address,
+          appointment_date: dateToUse,
+          appointment_time: rec.timeValue
         })
       }
       setStatus('Appointments booked! Calendar events added and confirmation emails sent.')
@@ -224,8 +240,8 @@ export default function Book() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Month</label>
-          <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="w-full p-2 border text-gray-900" />
+          <label className="block text-sm font-medium text-gray-700 mb-1">Appointment date</label>
+          <input type="date" value={apptDate} onChange={e => setApptDate(e.target.value)} className="w-full p-2 border text-gray-900" />
         </div>
 
         <div>
@@ -282,7 +298,8 @@ export default function Book() {
             <input placeholder="Phone (optional)" value={phone} onChange={e => setPhone(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
             <input placeholder="Street address" value={street} onChange={e => setStreet(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
             <input placeholder="City" value={city} onChange={e => setCity(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
-            <input placeholder="State" value={state} onChange={e => setState(e.target.value)} className="w-full border rounded px-3 py-2 mb-4" />
+            <input placeholder="State" value={state} onChange={e => setState(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
+            <input placeholder="Zip code" value={zip} onChange={e => setZip(e.target.value)} className="w-full border rounded px-3 py-2 mb-4" />
             <div className="flex gap-2">
               <button onClick={saveClient} className="flex-1 bg-blue-600 text-white py-2 rounded">{editing ? 'Save' : 'Add'}</button>
               <button onClick={() => setShowAdd(false)} className="flex-1 border py-2 rounded">Cancel</button>
