@@ -21,6 +21,8 @@ function Sidebar() {
     router.push('/login')
   }
 
+  if (pathname === '/login') return null
+
   const isActive = (path: string) => pathname === path ? 'bg-gray-800' : ''
 
   return (
@@ -68,18 +70,13 @@ function Sidebar() {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
-  const showSidebar = pathname !== '/login'
-
   return (
     <html lang="en">
       <body className="bg-gray-50">
         <div className="flex min-h-screen">
-          {showSidebar && (
-            <Suspense fallback={<div className="w-14 bg-black" />}>
-              <Sidebar />
-            </Suspense>
-          )}
+          <Suspense fallback={<div className="w-14 bg-black" />}>
+            <Sidebar />
+          </Suspense>
           <main className="flex-1">{children}</main>
         </div>
       </body>
