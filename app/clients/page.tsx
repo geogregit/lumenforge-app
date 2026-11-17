@@ -1,6 +1,7 @@
 'use client'
 import { createClient } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 
 export default function Clients() {
   const [clients, setClients] = useState<any[]>([])
@@ -11,7 +12,6 @@ export default function Clients() {
   const [notes, setNotes] = useState('')
   const [editing, setEditing] = useState<any>(null)
   const [status, setStatus] = useState('')
-  const [summary, setSummary] = useState('')
   const supabase = createClient()
 
   useEffect(() => { loadClients() }, [])
@@ -53,7 +53,6 @@ export default function Clients() {
     setPhone(client.phone || '')
     setAddress(client.address || '')
     setNotes(client.notes || '')
-    setSummary('')
   }
 
   function resetForm() {
@@ -63,7 +62,6 @@ export default function Clients() {
     setPhone('')
     setAddress('')
     setNotes('')
-    setSummary('')
   }
 
   async function deleteClient(id: any) {
@@ -71,17 +69,6 @@ export default function Clients() {
     const { error } = await supabase.from('Clients').delete().eq('ID', id)
     if (error) setStatus(error.message)
     else loadClients()
-  }
-
-  function generateSummary() {
-    if (!notes.trim()) {
-      setSummary('No notes to summarize')
-      return
-    }
-    // Simple summary for now (can be swapped for AI later)
-    const lines = notes.split('\n').filter(l => l.trim())
-    const bullets = lines.slice(0, 5).map(l => `• ${l.trim()}`).join('\n')
-    setSummary(bullets || notes.slice(0, 200))
   }
 
   return (
@@ -111,14 +98,14 @@ export default function Clients() {
 
       <div className="space-y-4">
         {clients.map(client => (
-          <div key={client.ID} className="bg-white border rounded-lg p-4">
+          <Link key={client.ID} href={`/clients/${client.ID}`} className="block bg-white border rounded-lg p-4 hover:shadow-md transition">
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="font-medium text-gray-900">{client.name}</h3>
                 <p className="text-sm text-gray-600">{client.email} {client.phone && `• ${client.phone}`}</p>
                 {client.address && <p className="text-sm text-gray-600">{client.address}</p>}
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2" onClick={e => e.preventDefault()}>
                 <button onClick={() => startEdit(client)} className="text-blue-600 text-sm">Edit</button>
                 <button onClick={() => deleteClient(client.ID)} className="text-red-600 text-sm">Delete</button>
               </div>
@@ -126,19 +113,12 @@ export default function Clients() {
             {client.notes && (
               <div className="mt-3 pt-3 border-t">
                 <p className="text-xs text-gray-500 mb-1">Notes</p>
-                <p className="text-sm text-gray-800 whitespace-pre-wrap">{client.notes}</p>
+                <p className="text-sm text-gray-800 whitespace-pre-wrap line-clamp-2">{client.notes}</p>
               </div>
             )}
-          </div>
+          </Link>
         ))}
       </div>
-
-      {editing && notes && (
-        <div className="mt-6 bg-white border rounded-lg p-4">
-          <button onClick={generateSummary} className="bg-gray-800 text-white px-4 py-2 rounded text-sm mb-2">Generate Summary</button>
-          {summary && <pre className="text-sm text-gray-800 bg-gray-50 p-3 rounded whitespace-pre-wrap">{summary}</pre>}
-        </div>
-      )}
     </div>
   )
 }
