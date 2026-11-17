@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 
-export const dynamic = 'force-dynamic'
-
 export default function ClientProfile() {
   const params = useParams()
   const id = params.id as string
