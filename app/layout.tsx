@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 
 function Sidebar() {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
+  const [userMenu, setUserMenu] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -22,21 +23,48 @@ function Sidebar() {
 
   if (pathname === '/login') return null
 
+  const isActive = (path: string) => pathname === path ? 'bg-gray-800' : ''
+
   return (
-    <aside className="w-64 bg-black text-white flex flex-col min-h-screen shrink-0">
-      <div className="p-4 border-b border-gray-800 font-bold text-lg">
-        LumenForge
+    <aside className={`fixed md:relative z-40 bg-black text-white flex flex-col transition-all duration-300 h-screen ${open ? 'w-64' : 'w-14'}`}>
+      <div className="flex items-center justify-between p-4 border-b border-gray-800">
+        {open && <span className="font-bold text-lg">LumenForge</span>}
+        <button onClick={() => setOpen(!open)} className="p-1">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
       </div>
-      <nav className="flex-1 py-2">
-        <Link href="/" className="block px-4 py-2 hover:bg-gray-800">🏠 Dashboard</Link>
-        <Link href="/book" className="block px-4 py-2 hover:bg-gray-800">📅 Schedule</Link>
-        <Link href="/routes" className="block px-4 py-2 hover:bg-gray-800">🗺️ Routes</Link>
-        <Link href="/clients" className="block px-4 py-2 hover:bg-gray-800">👤 Clients</Link>
-        <Link href="/settings" className="block px-4 py-2 hover:bg-gray-800">⚙️ Settings</Link>
+
+      <nav className="flex-1 py-2 overflow-hidden">
+        <Link href="/" className={`flex items-center gap-3 px-3 py-2 hover:bg-gray-800 ${isActive('/')}`} onClick={() => window.innerWidth < 768 && setOpen(false)}>
+          <span className="w-6 text-center text-lg">🏠</span>{open && <span className="text-sm">Dashboard</span>}
+        </Link>
+        <Link href="/book" className={`flex items-center gap-3 px-3 py-2 hover:bg-gray-800 ${isActive('/book')}`} onClick={() => window.innerWidth < 768 && setOpen(false)}>
+          <span className="w-6 text-center text-lg">📅</span>{open && <span className="text-sm">Schedule</span>}
+        </Link>
+        <Link href="/routes" className={`flex items-center gap-3 px-3 py-2 hover:bg-gray-800 ${isActive('/routes')}`} onClick={() => window.innerWidth < 768 && setOpen(false)}>
+          <span className="w-6 text-center text-lg">🗺️</span>{open && <span className="text-sm">Routes</span>}
+        </Link>
+        <Link href="/clients" className={`flex items-center gap-3 px-3 py-2 hover:bg-gray-800 ${isActive('/clients')}`} onClick={() => window.innerWidth < 768 && setOpen(false)}>
+          <span className="w-6 text-center text-lg">👤</span>{open && <span className="text-sm">Clients</span>}
+        </Link>
+        <Link href="/settings" className={`flex items-center gap-3 px-3 py-2 hover:bg-gray-800 ${isActive('/settings')}`} onClick={() => window.innerWidth < 768 && setOpen(false)}>
+          <span className="w-6 text-center text-lg">⚙️</span>{open && <span className="text-sm">Settings</span>}
+        </Link>
       </nav>
-      <button onClick={handleLogout} className="px-4 py-3 border-t border-gray-800 text-left hover:bg-gray-800">
-        Logout
-      </button>
+
+      <div className="border-t border-gray-800 shrink-0">
+        <button onClick={() => setUserMenu(!userMenu)} className="flex items-center gap-3 px-3 py-3 w-full hover:bg-gray-800">
+          <span className="w-6 text-center text-lg">👤</span>
+          {open && <span className="text-sm truncate">{user?.email || 'Account'}</span>}
+        </button>
+        {userMenu && open && (
+          <button onClick={handleLogout} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-800">
+            Logout
+          </button>
+        )}
+      </div>
     </aside>
   )
 }
@@ -44,12 +72,12 @@ function Sidebar() {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>
-        <div className="flex min-h-screen bg-gray-50">
-          <Suspense fallback={<div className="w-64 bg-black" />}>
+      <body className="bg-gray-50">
+        <div className="flex min-h-screen">
+          <Suspense fallback={<div className="w-14 bg-black" />}>
             <Sidebar />
           </Suspense>
-          <main className="flex-1 overflow-auto">{children}</main>
+          <main className="flex-1">{children}</main>
         </div>
       </body>
     </html>
