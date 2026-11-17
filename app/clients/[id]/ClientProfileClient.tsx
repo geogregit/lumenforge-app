@@ -15,7 +15,6 @@ export default function ClientProfileClient() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
-  const [notes, setNotes] = useState('')
   const [showDelete, setShowDelete] = useState(false)
   const [status, setStatus] = useState('')
 
@@ -31,13 +30,12 @@ export default function ClientProfileClient() {
       setEmail(data.email || '')
       setPhone(data.phone || '')
       setAddress(data.address || '')
-      setNotes(data.notes || '')
     }
   }
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
-    const { error } = await supabase.from('Clients').update({ name, email, phone, address, notes }).eq('ID', id)
+    const { error } = await supabase.from('Clients').update({ name, email, phone, address }).eq('ID', id)
     if (error) setStatus(error.message)
     else {
       setEditing(false)
@@ -71,13 +69,6 @@ export default function ClientProfileClient() {
           <input value={email} onChange={e => setEmail(e.target.value)} className="w-full p-2 border rounded" placeholder="Email" />
           <input value={phone} onChange={e => setPhone(e.target.value)} className="w-full p-2 border rounded" placeholder="Phone" />
           <input value={address} onChange={e => setAddress(e.target.value)} className="w-full p-2 border rounded" placeholder="Address" />
-          <textarea
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            rows={4}
-            className="w-full p-2 border rounded"
-            placeholder="Visit notes, special requests, etc."
-          />
           <div className="flex gap-2">
             <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded">Save</button>
             <button type="button" onClick={() => setEditing(false)} className="px-4 py-2 border rounded">Cancel</button>
