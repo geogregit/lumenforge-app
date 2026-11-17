@@ -71,7 +71,6 @@ export default function Book() {
       return
     }
     setStatus('Generating...')
-    // Simple sequential times starting from selected time or 8:00
     const start = time || '08:00'
     let [h, m] = start.split(':').map(Number)
     let currentMins = h * 60 + m
@@ -80,7 +79,7 @@ export default function Book() {
       const client = clients.find(c => c.ID === id)
       if (!client) continue
       const leave = currentMins
-      const arrive = leave + 30 // placeholder; real drive comes from Routes page
+      const arrive = leave + 30
       rec.push({
         clientId: id,
         name: client.name,
@@ -88,8 +87,8 @@ export default function Book() {
         phone: client.phone || '',
         date,
         time: `${Math.floor(currentMins / 60).toString().padStart(2, '0')}:${(currentMins % 60).toString().padStart(2, '0')}`,
-        leaveBy: `${Math.floor(leave / 60)}:${(leave % 60).toString().padStart(2, '0')}`,
-        arriveBy: `${Math.floor(arrive / 60)}:${(arrive % 60).toString().padStart(2, '0')}`
+        leaveBy: `${Math.floor(leave / 60).toString().padStart(2, '0')}:${(leave % 60).toString().padStart(2, '0')}`,
+        arriveBy: `${Math.floor(arrive / 60).toString().padStart(2, '0')}:${(arrive % 60).toString().padStart(2, '0')}`
       })
       currentMins += 90
     }
@@ -100,9 +99,10 @@ export default function Book() {
   async function bookAll() {
     if (recommendation.length === 0) return
     setStatus('Booking...')
+    let success = 0
     for (const appt of recommendation) {
       try {
-        await fetch('https://lumenforge-prod.app.n8n.cloud/webhook/ed413225-6b24-4ccf-8f52-b1f2db33e41b', {
+        const res = await fetch('https://lumenforge-prod.app.n8n.cloud/webhook/ed413225-6b24-4ccf-8f52-b1f2db33e41b', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -115,15 +115,24 @@ export default function Book() {
             notifyBy
           })
         })
-      } catch {
-        setStatus('Error booking some appointments')
-        return
+        if (res.ok) success++
+        else console.error('Webhook failed for', appt.name)
+      } catch (err) {
+        console.error(err)
       }
     }
-    setStatus('Appointments booked')
+    if (success === recommendation.length) {
+      setStatus(selectedClients.length === 1 ? 'Appointment booked' : 'Appointments booked')
+    } else {
+      setStatus(`Booked ${success} of ${recommendation.length}. Check n8n for text/email errors.`)
+    }
     setRecommendation([])
     setSelectedClients([])
   }
+
+  const buttonText = selectedClients.length === 1
+    ? `Book Appointment & Send ${notifyBy === 'text' ? 'Text' : notifyBy === 'email' ? 'Email' : 'Confirmation'}`
+    : `Book All Appointments & Send ${notifyBy === 'text' ? 'Texts' : notifyBy === 'email' ? 'Emails' : 'Confirmations'}`
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6">
@@ -150,7 +159,7 @@ export default function Book() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-          <input type="date" value={date} onChange={e => { setDate(e.target.value); checkAvailability(e.target.value) }} className="w-full p-2 border text-gray-900" />
+          <input type="date" value={date} onChange={e => { setDate(e.target.value); checkAvailability(e.target.value) }} className="w-full p-2 border" />
         </div>
 
         <div>
@@ -181,7 +190,7 @@ export default function Book() {
       {recommendation.length > 0 && (
         <div className="mt-6 p-4 border bg-white">
           <h2 className="font-medium text-gray-900 mb-2">Recommended Schedule</h2>
-          <p className="text-xs text-gray-600 mb-3">These appointments will be added to your calendar. Confirmation {notifyBy === 'text' ? 'texts' : notifyBy === 'both' ? 'emails and texts' : 'emails'} will be sent.</p>
+          <p className="text-xs text-gray-600 mb-3">These appointments will be added to your calendar. Confirmation {notifyBy === 'text' ? 'texts' : 'emails'} will be sent.</p>
           {recommendation.map((r, i) => (
             <div key={i} className="mb-2 text-sm text-gray-800">
               {i + 1}. {r.name}<br />
@@ -189,7 +198,7 @@ export default function Book() {
               Leave office by: {r.leaveBy} &nbsp; Arrive by: {r.arriveBy}
             </div>
           ))}
-          <button onClick={bookAll} className="w-full bg-green-600 text-white p-2 mt-3">Book All Appointments & Send {notifyBy === 'text' ? 'Texts' : notifyBy === 'both' ? 'Emails & Texts' : 'Emails'}</button>
+          <button onClick={bookAll} className="w-full bg-green-600 text-white p-2 mt-3">{buttonText}</button>
         </div>
       )}
     </div>
