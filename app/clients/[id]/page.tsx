@@ -1,10 +1,10 @@
 'use client'
 import { createClient } from '@/lib/supabase'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 
-export default function ClientProfile() {
+function ClientProfileContent() {
   const params = useParams()
   const id = params.id as string
   const [client, setClient] = useState<any>(null)
@@ -73,5 +73,13 @@ export default function ClientProfile() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function ClientProfile() {
+  return (
+    <Suspense fallback={<div className="p-6 text-gray-900">Loading client...</div>}>
+      <ClientProfileContent />
+    </Suspense>
   )
 }
