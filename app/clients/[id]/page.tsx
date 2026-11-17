@@ -1,12 +1,13 @@
 'use client'
 import { createClient } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
+
+export const dynamic = 'force-dynamic'
 
 export default function ClientProfile() {
   const params = useParams()
-  const router = useRouter()
   const id = params.id as string
   const [client, setClient] = useState<any>(null)
   const [notes, setNotes] = useState('')
@@ -43,7 +44,7 @@ export default function ClientProfile() {
     setSummary(bullets || notes.slice(0, 300))
   }
 
-  if (!client) return <div className="p-6">Loading...</div>
+  if (!client) return <div className="p-6 text-gray-900">Loading...</div>
 
   return (
     <div className="max-w-2xl mx-auto mt-10 p-6">
