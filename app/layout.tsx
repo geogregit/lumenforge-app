@@ -1,4 +1,5 @@
 'use client'
+import './globals.css'
 import { useState, useEffect, Suspense } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
