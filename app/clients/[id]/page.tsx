@@ -1,20 +1,59 @@
+'use client'
+
 import { createClient } from '@/lib/supabase'
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
 
-export const instant = false
-
-export default async function ClientDetail({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export default function ClientDetail() {
+  const params = useParams()
+  const id = params?.id as string
+  const [client, setClient] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const supabase = createClient()
-  const { data: client, error } = await supabase
-    .from('Clients')
-    .select('*')
-    .eq('ID', id)
-    .single()
+
+  useEffect(() => {
+    if (!id) return
+    loadClient()
+  }, [id])
+
+  async function loadClient() {
+    const { data, error } = await supabase
+      .from('Clients')
+      .select('*')
+      .eq('ID', id)
+      .single()
+
+    if (error) {
+      console.error(error)
+      setError(error.message)
+    } else {
+      setClient(data)
+    }
+    setLoading(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    )
+  }
 
   if (error || !client) {
-    notFound()
+    return (
+      <div className="min-h-screen bg-gray-50 py-10">
+        <div className="max-w-2xl mx-auto px-4 text-center">
+          <p className="text-gray-500">Client not found.</p>
+          {error && <p className="text-xs text-red-500 mt-2">{error}</p>}
+          <Link href="/clients/list" className="text-blue-600 mt-4 inline-block">
+            Back to clients
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
