@@ -95,11 +95,22 @@ export default function Routes() {
                     <p className="text-sm text-red-600 mt-0.5">Missing phone number</p>
                   )}
                 </div>
+                <div
+                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition ${
+                    selected.includes(client.ID)
+                      ? 'border-blue-600 bg-blue-600'
+                      : 'border-gray-300'
+                  }`}
+                >
+                  {selected.includes(client.ID) && (
+                    <div className="w-2.5 h-2.5 rounded-full bg-white" />
+                  )}
+                </div>
                 <input
                   type="checkbox"
                   checked={selected.includes(client.ID)}
                   onChange={() => toggleClient(client.ID)}
-                  className="w-5 h-5 text-blue-600 rounded-full border-gray-300 focus:ring-blue-500"
+                  className="sr-only"
                 />
               </label>
             ))}
