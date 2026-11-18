@@ -29,17 +29,10 @@ export default function Routes() {
     )
   }
 
-  function selectAll() {
-    const visible = filteredClients.map(c => c.ID)
-    if (visible.every(id => selected.includes(id))) {
-      setSelected(prev => prev.filter(id => !visible.includes(id)))
-    } else {
-      setSelected(prev => Array.from(new Set([...prev, ...visible])))
-    }
-  }
-
   const filteredClients = clients.filter(c =>
-    c.name?.toLowerCase().includes(search.toLowerCase())
+    c.name?.toLowerCase().includes(search.toLowerCase()) ||
+    c.phone?.includes(search) ||
+    c.email?.toLowerCase().includes(search.toLowerCase())
   )
 
   async function generateRoute() {
@@ -52,12 +45,12 @@ export default function Routes() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-10">
-      <div className="max-w-2xl mx-auto px-4">
-        <h1 className="text-3xl font-semibold text-gray-900 mb-6">Routes</h1>
+      <div className="max-w-lg mx-auto px-4">
+        <h1 className="text-3xl font-semibold text-gray-900 mb-8">Routes</h1>
 
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium text-gray-700">Clients</h2>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-gray-700">Clients</label>
             <Link
               href="/clients"
               className="text-sm bg-blue-600 hover:bg-blue-700 text-white font-medium py-1.5 px-3 rounded-lg shadow transition"
@@ -71,49 +64,52 @@ export default function Routes() {
             placeholder="Search clients..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full p-3 rounded-xl border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 mb-3"
+            className="w-full mb-3 p-3 rounded-xl border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
 
-          <button
-            onClick={selectAll}
-            className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-1.5 px-3 rounded-lg mb-3 transition"
-          >
-            {filteredClients.length > 0 && filteredClients.every(c => selected.includes(c.ID))
-              ? 'Deselect All'
-              : 'Select All'}
-          </button>
-
-          <div className="space-y-3">
-            {filteredClients.map(client => (
-              <label
-                key={client.ID}
-                className="flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition cursor-pointer"
-              >
-                <div>
-                  <p className="font-semibold text-gray-900">{client.name}</p>
-                  {!client.phone && (
-                    <p className="text-sm text-red-600 mt-0.5">Missing phone number</p>
-                  )}
-                </div>
-                <div
-                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition ${
-                    selected.includes(client.ID)
-                      ? 'border-blue-600 bg-blue-600'
-                      : 'border-gray-300'
-                  }`}
-                >
-                  {selected.includes(client.ID) && (
-                    <div className="w-2.5 h-2.5 rounded-full bg-white" />
-                  )}
-                </div>
-                <input
-                  type="checkbox"
-                  checked={selected.includes(client.ID)}
-                  onChange={() => toggleClient(client.ID)}
-                  className="sr-only"
-                />
-              </label>
-            ))}
+          <div className="max-h-72 overflow-y-auto space-y-3 pr-1 border border-gray-200 rounded-2xl p-3 bg-white">
+            {filteredClients.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-6">No clients found</p>
+            ) : (
+              filteredClients.map(client => {
+                const isSelected = selected.includes(client.ID)
+                const missingPhone = !client.phone
+                const missingEmail = !client.email
+                return (
+                  <button
+                    key={client.ID}
+                    type="button"
+                    onClick={() => toggleClient(client.ID)}
+                    className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 ${
+                      isSelected
+                        ? 'border-blue-500 bg-blue-50 shadow-md'
+                        : 'border-gray-200 bg-white shadow-sm hover:shadow-md'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-gray-900">{client.name}</p>
+                        {missingPhone && (
+                          <p className="text-sm text-red-600 mt-0.5">Missing phone number</p>
+                        )}
+                        {missingEmail && (
+                          <p className="text-sm text-red-600">Missing email</p>
+                        )}
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                        isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
+                      }`}>
+                        {isSelected && (
+                          <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                )
+              })
+            )}
           </div>
         </div>
 
