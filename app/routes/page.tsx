@@ -7,6 +7,7 @@ import Link from 'next/link'
 export default function Routes() {
   const [clients, setClients] = useState<any[]>([])
   const [selected, setSelected] = useState<string[]>([])
+  const [search, setSearch] = useState('')
   const [startTime, setStartTime] = useState('08:00')
   const [sortBy, setSortBy] = useState<'closest' | 'furthest'>('closest')
   const [preview, setPreview] = useState<any[]>([])
@@ -29,18 +30,21 @@ export default function Routes() {
   }
 
   function selectAll() {
-    if (selected.length === clients.length) {
-      setSelected([])
+    const visible = filteredClients.map(c => c.ID)
+    if (visible.every(id => selected.includes(id))) {
+      setSelected(prev => prev.filter(id => !visible.includes(id)))
     } else {
-      setSelected(clients.map(c => c.ID))
+      setSelected(prev => Array.from(new Set([...prev, ...visible])))
     }
   }
+
+  const filteredClients = clients.filter(c =>
+    c.name?.toLowerCase().includes(search.toLowerCase())
+  )
 
   async function generateRoute() {
     if (selected.length === 0) return
     setLoading(true)
-    // Placeholder for route generation logic
-    // In a real implementation this would call your drive-time API
     const ordered = clients.filter(c => selected.includes(c.ID))
     setPreview(ordered)
     setLoading(false)
@@ -51,9 +55,9 @@ export default function Routes() {
       <div className="max-w-2xl mx-auto px-4">
         <h1 className="text-3xl font-semibold text-gray-900 mb-6">Routes</h1>
 
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-gray-900">Clients</h2>
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-medium text-gray-700">Clients</h2>
             <Link
               href="/clients"
               className="text-sm bg-blue-600 hover:bg-blue-700 text-white font-medium py-1.5 px-3 rounded-lg shadow transition"
@@ -62,36 +66,41 @@ export default function Routes() {
             </Link>
           </div>
 
+          <input
+            type="text"
+            placeholder="Search clients..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full p-3 rounded-xl border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 mb-3"
+          />
+
           <button
             onClick={selectAll}
             className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-1.5 px-3 rounded-lg mb-3 transition"
           >
-            {selected.length === clients.length ? 'Deselect All' : 'Select All'}
+            {filteredClients.length > 0 && filteredClients.every(c => selected.includes(c.ID))
+              ? 'Deselect All'
+              : 'Select All'}
           </button>
 
           <div className="space-y-3">
-            {clients.map(client => (
+            {filteredClients.map(client => (
               <label
                 key={client.ID}
-                className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+                className="flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition cursor-pointer"
               >
+                <div>
+                  <p className="font-semibold text-gray-900">{client.name}</p>
+                  {!client.phone && (
+                    <p className="text-sm text-red-600 mt-0.5">Missing phone number</p>
+                  )}
+                </div>
                 <input
                   type="checkbox"
                   checked={selected.includes(client.ID)}
                   onChange={() => toggleClient(client.ID)}
-                  className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  className="w-5 h-5 text-blue-600 rounded-full border-gray-300 focus:ring-blue-500"
                 />
-                <div className="flex-1">
-                  <p className="font-semibold text-gray-900">{client.name}</p>
-                  <p className="text-sm text-gray-500">{client.address || 'No address'}</p>
-                </div>
-                <Link
-                  href={`/clients/${client.ID}`}
-                  onClick={e => e.stopPropagation()}
-                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  Edit
-                </Link>
               </label>
             ))}
           </div>
