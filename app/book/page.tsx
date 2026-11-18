@@ -139,7 +139,8 @@ export default function Book() {
         address: client.address,
         driveMin: drive,
         departBy,
-        arriveAt
+        arriveAt,
+        isFirst: i === 0
       })
 
       currentTime = addMinutes(arriveAt, 60)
@@ -181,6 +182,8 @@ export default function Book() {
               ) : (
                 filteredClients.map(client => {
                   const selected = selectedClients.includes(client.ID)
+                  const missingPhone = !client.phone
+                  const missingEmail = !client.email
                   return (
                     <button
                       key={client.ID}
@@ -195,9 +198,14 @@ export default function Book() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium text-gray-900">{client.name}</p>
-                          {client.phone && <p className="text-sm text-gray-500">{client.phone}</p>}
+                          <p className="text-sm text-gray-600 mt-0.5">
+                            {client.phone ? client.phone : 'Missing phone number'}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {client.email ? client.email : 'Missing email'}
+                          </p>
                         </div>
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                           selected ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
                         }`}>
                           {selected && (
@@ -274,7 +282,9 @@ export default function Book() {
               <div key={i} className="mb-4 pb-4 border-b last:border-0 last:mb-0 last:pb-0">
                 <p className="font-medium text-gray-900">{i + 1}. {s.name}</p>
                 <p className="text-sm text-gray-600 mt-1">Drive: {format(s.driveMin)}</p>
-                <p className="text-sm text-gray-600">Leave by: {s.departBy}</p>
+                <p className="text-sm text-gray-600">
+                  {s.isFirst ? 'Leave office by' : 'Leave by'}: {s.departBy}
+                </p>
                 <p className="text-sm text-gray-600">Arrive: {s.arriveAt}</p>
               </div>
             ))}
