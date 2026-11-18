@@ -114,9 +114,10 @@ export default function ClientList() {
 
         <div className="space-y-4">
           {clients.map(client => (
-            <div
+            <Link
               key={client.ID}
-              className="p-5 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200"
+              href={`/clients/${client.ID}`}
+              className="block p-5 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
             >
               <div className="flex items-start justify-between">
                 <div>
@@ -130,7 +131,7 @@ export default function ClientList() {
                     <p className="text-sm text-gray-500 mt-1">{client.address}</p>
                   )}
                 </div>
-                <div className="flex gap-3 text-sm">
+                <div className="flex gap-3 text-sm" onClick={e => e.preventDefault()}>
                   <button
                     onClick={() => startEdit(client)}
                     className="text-blue-600 hover:text-blue-800 font-medium"
@@ -145,7 +146,7 @@ export default function ClientList() {
                   </button>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 
