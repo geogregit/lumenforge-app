@@ -14,6 +14,7 @@ export default function Book() {
   const [busyTimes, setBusyTimes] = useState<string[]>([])
   const [stops, setStops] = useState<any[]>([])
   const [officeAddress, setOfficeAddress] = useState('')
+  const [showConfirm, setShowConfirm] = useState(false)
   const supabase = createClient()
 
   const timeSlots: { label: string; value: string }[] = []
@@ -96,6 +97,13 @@ export default function Book() {
     return `${h}h ${m}m`
   }
 
+  function formatTime(timeStr: string) {
+    const [h, m] = timeStr.split(':').map(Number)
+    const h12 = h % 12 || 12
+    const ampm = h < 12 ? 'AM' : 'PM'
+    return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (selectedClients.length === 0 || !date || !time) {
@@ -109,6 +117,7 @@ export default function Book() {
 
     setStatus('Calculating best route...')
     setStops([])
+    setShowConfirm(false)
 
     const selected = clients.filter(c => selectedClients.includes(c.ID) && c.address)
     if (selected.length === 0) {
@@ -124,35 +133,77 @@ export default function Book() {
     )
     const ordered = [...withDist].sort((a, b) => a.dist - b.dist)
 
-    let currentTime = time
+    let appointmentTime = time
     const preview: any[] = []
 
     for (let i = 0; i < ordered.length; i++) {
       const client = ordered[i]
       const from = i === 0 ? officeAddress : ordered[i - 1].address
       const drive = await getMins(from, client.address)
-      const departBy = currentTime
-      const arriveAt = addMinutes(currentTime, drive)
+
+      const leaveBy = i === 0
+        ? subtractMinutes(appointmentTime, drive)
+        : appointmentTime
+
+      const arriveAt = addMinutes(leaveBy, drive)
 
       preview.push({
         name: client.name,
         address: client.address,
         driveMin: drive,
-        departBy,
-        arriveAt,
-        isFirst: i === 0
+        appointmentTime: formatTime(appointmentTime),
+        leaveBy: formatTime(leaveBy),
+        arriveAt: formatTime(arriveAt),
+        isFirst: i === 0,
+        rawTime: appointmentTime,
+        clientId: client.ID
       })
 
-      currentTime = addMinutes(arriveAt, 60)
+      appointmentTime = addMinutes(appointmentTime, 60)
     }
 
     setStops(preview)
+    setShowConfirm(true)
     setStatus('')
+  }
+
+  async function confirmSchedule() {
+    setStatus('Scheduling appointments...')
+    try {
+      // Send each appointment to your booking webhook
+      for (const stop of stops) {
+        await fetch('https://lumenforge-prod.app.n8n.cloud/webhook/ed413225-6b24-4ccf-8f52-b1f2db33e41b', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            clientId: stop.clientId,
+            date,
+            time: stop.rawTime,
+            confirmation
+          })
+        })
+      }
+      setStatus('Appointments scheduled successfully')
+      setShowConfirm(false)
+      setStops([])
+      setSelectedClients([])
+    } catch (err) {
+      setStatus('Failed to schedule. Try again.')
+    }
   }
 
   function addMinutes(timeStr: string, mins: number) {
     const [h, m] = timeStr.split(':').map(Number)
     const total = h * 60 + m + mins
+    const nh = Math.floor(total / 60) % 24
+    const nm = total % 60
+    return `${nh.toString().padStart(2, '0')}:${nm.toString().padStart(2, '0')}`
+  }
+
+  function subtractMinutes(timeStr: string, mins: number) {
+    const [h, m] = timeStr.split(':').map(Number)
+    let total = h * 60 + m - mins
+    if (total < 0) total += 24 * 60
     const nh = Math.floor(total / 60) % 24
     const nm = total % 60
     return `${nh.toString().padStart(2, '0')}:${nm.toString().padStart(2, '0')}`
@@ -274,20 +325,30 @@ export default function Book() {
           {status && <p className="text-sm text-center text-gray-600">{status}</p>}
         </form>
 
-        {/* Recommendation preview */}
+        {/* Recommendation preview + confirm button */}
         {stops.length > 0 && (
           <div className="mt-8 p-6 bg-white rounded-2xl shadow-lg border border-gray-100">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Recommended Route</h2>
             {stops.map((s, i) => (
               <div key={i} className="mb-4 pb-4 border-b last:border-0 last:mb-0 last:pb-0">
                 <p className="font-medium text-gray-900">{i + 1}. {s.name}</p>
-                <p className="text-sm text-gray-600 mt-1">Drive: {format(s.driveMin)}</p>
+                <p className="text-sm text-gray-900 font-medium mt-1">Appointment: {s.appointmentTime}</p>
+                <p className="text-sm text-gray-600">Drive: {format(s.driveMin)}</p>
                 <p className="text-sm text-gray-600">
-                  {s.isFirst ? 'Leave office by' : 'Leave by'}: {s.departBy}
+                  {s.isFirst ? 'Leave office by' : 'Leave by'}: {s.leaveBy}
                 </p>
                 <p className="text-sm text-gray-600">Arrive: {s.arriveAt}</p>
               </div>
             ))}
+
+            {showConfirm && (
+              <button
+                onClick={confirmSchedule}
+                className="w-full mt-6 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-xl shadow-md hover:shadow-lg transition"
+              >
+                Confirm & Schedule Appointments
+              </button>
+            )}
           </div>
         )}
       </div>
