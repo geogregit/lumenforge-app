@@ -5,9 +5,11 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 export default function ClientDetail() {
   const params = useParams()
-  const id = params.id as string
+  const id = params?.id as string
   const [client, setClient] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
@@ -64,13 +66,11 @@ export default function ClientDetail() {
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Future Visits</h2>
           <p className="text-sm text-gray-500">No upcoming visits yet.</p>
-          {/* Later: pull from appointments table or calendar */}
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Past Visits</h2>
           <p className="text-sm text-gray-500">No past visits yet.</p>
-          {/* Later: show visit date, notes, etc. */}
         </div>
       </div>
     </div>
