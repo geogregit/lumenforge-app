@@ -198,12 +198,12 @@ export default function Book() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium text-gray-900">{client.name}</p>
-                          <p className="text-sm text-gray-600 mt-0.5">
-                            {client.phone ? client.phone : 'Missing phone number'}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            {client.email ? client.email : 'Missing email'}
-                          </p>
+                          {missingPhone && (
+                            <p className="text-sm text-red-600 mt-0.5">Missing phone number</p>
+                          )}
+                          {missingEmail && (
+                            <p className="text-sm text-red-600">Missing email</p>
+                          )}
                         </div>
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                           selected ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
