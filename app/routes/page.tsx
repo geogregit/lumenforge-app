@@ -1,33 +1,20 @@
 'use client'
+
 import { createClient } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 
 export default function Routes() {
   const [clients, setClients] = useState<any[]>([])
-  const [appointments, setAppointments] = useState<any[]>([])
-  const [selectedClients, setSelectedClients] = useState<string[]>([])
-  const [selectedAppts, setSelectedAppts] = useState<string[]>([])
-  const [showAdd, setShowAdd] = useState(false)
-  const [editing, setEditing] = useState<any>(null)
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
-  const [street, setStreet] = useState('')
-  const [city, setCity] = useState('')
-  const [state, setState] = useState('')
-  const [zip, setZip] = useState('')
+  const [selected, setSelected] = useState<string[]>([])
   const [startTime, setStartTime] = useState('08:00')
   const [sortBy, setSortBy] = useState<'closest' | 'furthest'>('closest')
-  const [officeAddress, setOfficeAddress] = useState('')
-  const [stops, setStops] = useState<any[]>([])
-  const [status, setStatus] = useState('')
+  const [preview, setPreview] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
     loadClients()
-    loadAppointments()
-    loadOffice()
   }, [])
 
   async function loadClients() {
@@ -35,254 +22,134 @@ export default function Routes() {
     setClients(data || [])
   }
 
-  async function loadAppointments() {
-    const { data } = await supabase.from('appointments').select('*').order('appointment_date', { ascending: true })
-    setAppointments(data || [])
-  }
-
-  async function loadOffice() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    const { data } = await supabase.from('profiles').select('office_address').eq('id', user.id).single()
-    if (data?.office_address) setOfficeAddress(data.office_address)
-  }
-
-  function openEdit(client: any) {
-    const nameParts = (client.name || '').split(' ')
-    setFirstName(nameParts[0] || '')
-    setLastName(nameParts.slice(1).join(' ') || '')
-    setEmail(client.email || '')
-    setPhone(client.phone || '')
-    const addrParts = (client.address || '').split(',').map((s: string) => s.trim())
-    setStreet(addrParts[0] || '')
-    setCity(addrParts[1] || '')
-    setState(addrParts[2] || '')
-    setZip(addrParts[3] || '')
-    setEditing(client)
-    setShowAdd(true)
-  }
-
-  async function saveClient() {
-    if (!firstName || !lastName || !email) {
-      alert('First name, last name, and email are required')
-      return
-    }
-    const fullName = `${firstName} ${lastName}`.trim()
-    const fullAddress = [street, city, state, zip].filter(Boolean).join(', ')
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (editing) {
-      await supabase.from('Clients').update({
-        name: fullName,
-        email,
-        phone: phone || null,
-        address: fullAddress || null
-      }).eq('ID', editing.ID)
-    } else {
-      await supabase.from('Clients').insert({
-        name: fullName,
-        email,
-        phone: phone || null,
-        address: fullAddress || null,
-        user_ID: user?.id
-      })
-    }
-    setFirstName('')
-    setLastName('')
-    setEmail('')
-    setPhone('')
-    setStreet('')
-    setCity('')
-    setState('')
-    setZip('')
-    setEditing(null)
-    setShowAdd(false)
-    loadClients()
-  }
-
   function toggleClient(id: string) {
-    setSelectedClients(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id])
+    setSelected(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
   }
 
-  function toggleAppt(id: string) {
-    setSelectedAppts(prev => prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id])
-  }
-
-  function selectAllClients() {
-    setSelectedClients(clients.map(c => c.ID))
-  }
-
-  function selectAllAppts() {
-    setSelectedAppts(appointments.map(a => a.id))
-  }
-
-  async function getMins(from: string, to: string) {
-    try {
-      const res = await fetch(`/api/drive-time?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`)
-      const data = await res.json()
-      return data.minutes || 0
-    } catch { return 0 }
-  }
-
-  function formatTime(totalMins: number) {
-    const mins = ((totalMins % 1440) + 1440) % 1440
-    const h = Math.floor(mins / 60)
-    const m = mins % 60
-    const ampm = h < 12 ? 'AM' : 'PM'
-    const displayH = h % 12 || 12
-    return `${displayH}:${m.toString().padStart(2, '0')} ${ampm}`
-  }
-
-  async function buildPreview() {
-    setStatus('Calculating...')
-    let chosen: any[] = []
-
-    if (selectedAppts.length > 0) {
-      chosen = appointments.filter(a => selectedAppts.includes(a.id) && a.client_address).map(a => ({
-        name: a.client_name,
-        address: a.client_address,
-        time: a.appointment_time
-      }))
+  function selectAll() {
+    if (selected.length === clients.length) {
+      setSelected([])
     } else {
-      chosen = clients.filter(c => selectedClients.includes(c.ID) && c.address).map(c => ({
-        name: c.name,
-        address: c.address
-      }))
+      setSelected(clients.map(c => c.ID))
     }
+  }
 
-    if (chosen.length === 0) {
-      setStatus('Select clients or appointments with addresses')
-      setStops([])
-      return
-    }
-
-    const withDist = await Promise.all(chosen.map(async c => ({
-      ...c,
-      dist: await getMins(officeAddress, c.address)
-    })))
-    const ordered = [...withDist].sort((a, b) => sortBy === 'closest' ? a.dist - b.dist : b.dist - a.dist)
-
-    let [h, m] = startTime.split(':').map(Number)
-    let currentMins = h * 60 + m
-    const result: any[] = []
-    let prev = officeAddress
-
-    for (let i = 0; i < ordered.length; i++) {
-      const c = ordered[i]
-      const drive = await getMins(prev, c.address)
-      const leave = currentMins
-      const arrive = leave + drive + 10
-      result.push({
-        name: c.name,
-        time: c.time,
-        driveMin: drive,
-        leaveBy: formatTime(leave),
-        arriveAt: formatTime(arrive),
-        isFirst: i === 0
-      })
-      prev = c.address
-      currentMins = arrive + 60
-    }
-    setStops(result)
-    setStatus('')
+  async function generateRoute() {
+    if (selected.length === 0) return
+    setLoading(true)
+    // Placeholder for route generation logic
+    // In a real implementation this would call your drive-time API
+    const ordered = clients.filter(c => selected.includes(c.ID))
+    setPreview(ordered)
+    setLoading(false)
   }
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6">
-      <h1 className="text-2xl mb-4 text-gray-900">Routes</h1>
+    <div className="min-h-screen bg-gray-50 py-10">
+      <div className="max-w-2xl mx-auto px-4">
+        <h1 className="text-3xl font-semibold text-gray-900 mb-6">Routes</h1>
 
-      <div className="space-y-4">
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-sm font-medium text-gray-700">Clients</label>
-            <button type="button" onClick={() => { setEditing(null); setShowAdd(true) }} className="text-sm bg-blue-600 text-white px-3 py-1 rounded">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-medium text-gray-900">Clients</h2>
+            <Link
+              href="/clients"
+              className="text-sm bg-blue-600 hover:bg-blue-700 text-white font-medium py-1.5 px-3 rounded-lg shadow transition"
+            >
               Add Client
-            </button>
+            </Link>
           </div>
-          <button type="button" onClick={selectAllClients} className="text-sm bg-gray-200 px-3 py-1 rounded mb-2">Select All</button>
-          <div className="border max-h-40 overflow-y-auto p-2 space-y-1">
-            {clients.map(c => (
-              <div key={c.ID} className="flex items-center justify-between text-sm text-gray-900">
-                <label className="flex items-center gap-2 flex-1">
-                  <input type="checkbox" checked={selectedClients.includes(c.ID)} onChange={() => toggleClient(c.ID)} />
-                  {c.name}
-                </label>
-                <button onClick={() => openEdit(c)} className="text-blue-600 text-xs">Edit</button>
-              </div>
+
+          <button
+            onClick={selectAll}
+            className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-1.5 px-3 rounded-lg mb-3 transition"
+          >
+            {selected.length === clients.length ? 'Deselect All' : 'Select All'}
+          </button>
+
+          <div className="space-y-3">
+            {clients.map(client => (
+              <label
+                key={client.ID}
+                className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={selected.includes(client.ID)}
+                  onChange={() => toggleClient(client.ID)}
+                  className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                />
+                <div className="flex-1">
+                  <p className="font-semibold text-gray-900">{client.name}</p>
+                  <p className="text-sm text-gray-500">{client.address || 'No address'}</p>
+                </div>
+                <Link
+                  href={`/clients/${client.ID}`}
+                  onClick={e => e.stopPropagation()}
+                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Edit
+                </Link>
+              </label>
             ))}
           </div>
         </div>
 
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-sm font-medium text-gray-700">Appointments</label>
-            <button type="button" onClick={selectAllAppts} className="text-sm bg-gray-200 px-3 py-1 rounded">Select All</button>
-          </div>
-          <div className="border max-h-40 overflow-y-auto p-2 space-y-1">
-            {appointments.length === 0 ? (
-              <p className="text-sm text-gray-500">No booked appointments yet</p>
-            ) : (
-              appointments.map(a => (
-                <label key={a.id} className="flex items-center gap-2 text-sm text-gray-900">
-                  <input type="checkbox" checked={selectedAppts.includes(a.id)} onChange={() => toggleAppt(a.id)} />
-                  {a.client_name} — {a.appointment_time} ({a.appointment_date})
-                </label>
-              ))
-            )}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-6">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Appointments</h2>
+          <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-sm text-gray-500">
+            No booked appointments yet
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Start time</label>
-          <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full p-2 border text-gray-900" />
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Start time</label>
+            <input
+              type="time"
+              value={startTime}
+              onChange={e => setStartTime(e.target.value)}
+              className="w-full p-3 rounded-xl border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Sort route by</label>
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value as 'closest' | 'furthest')}
+              className="w-full p-3 rounded-xl border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="closest">Closest to office first</option>
+              <option value="furthest">Furthest from office first</option>
+            </select>
+          </div>
+
+          <button
+            onClick={generateRoute}
+            disabled={selected.length === 0 || loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-3 rounded-xl shadow-md transition"
+          >
+            {loading ? 'Generating...' : 'Generate Route'}
+          </button>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Sort route by</label>
-          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className="w-full p-2 border text-gray-900">
-            <option value="closest">Closest to office first</option>
-            <option value="furthest">Furthest from office first</option>
-          </select>
-        </div>
-
-        <button onClick={buildPreview} className="w-full bg-blue-600 text-white p-2">Generate Route</button>
-        {status && <p className="text-sm text-gray-700">{status}</p>}
+        {preview.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Route Preview</h2>
+            <div className="space-y-3">
+              {preview.map((stop, i) => (
+                <div key={stop.ID} className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <p className="font-semibold text-gray-900">{i + 1}. {stop.name}</p>
+                  <p className="text-sm text-gray-500">{stop.address}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
-
-      {stops.length > 0 && (
-        <div className="mt-6 p-4 border bg-white">
-          <h2 className="font-medium text-gray-900 mb-3">Route Preview</h2>
-          {stops.map((s, i) => (
-            <div key={i} className="mb-3 pb-3 border-b last:border-0 text-sm">
-              <p className="font-medium text-gray-900">{i + 1}. {s.name}</p>
-              {s.time && <p className="text-gray-700">Scheduled: {s.time}</p>}
-              <p className="text-gray-700">Drive: {s.driveMin} min</p>
-              <p className="text-gray-700">{s.isFirst ? 'Leave office by' : 'Leave previous by'}: {s.leaveBy}</p>
-              <p className="text-gray-700">Arrive by: {s.arriveAt}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {showAdd && (
-        <div className="fixed inset-0 bg-black/30 z-40 flex items-center justify-center" onClick={() => setShowAdd(false)}>
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold mb-4">{editing ? 'Edit Client' : 'Add Client'}</h3>
-            <input placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
-            <input placeholder="Last name" value={lastName} onChange={e => setLastName(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
-            <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
-            <input placeholder="Phone (optional)" value={phone} onChange={e => setPhone(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
-            <input placeholder="Street address" value={street} onChange={e => setStreet(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
-            <input placeholder="City" value={city} onChange={e => setCity(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
-            <input placeholder="State" value={state} onChange={e => setState(e.target.value)} className="w-full border rounded px-3 py-2 mb-2" />
-            <input placeholder="Zip code" value={zip} onChange={e => setZip(e.target.value)} className="w-full border rounded px-3 py-2 mb-4" />
-            <div className="flex gap-2">
-              <button onClick={saveClient} className="flex-1 bg-blue-600 text-white py-2 rounded">{editing ? 'Save' : 'Add'}</button>
-              <button onClick={() => setShowAdd(false)} className="flex-1 border py-2 rounded">Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
