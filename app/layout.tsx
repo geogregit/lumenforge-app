@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import SessionTimeout from '@/components/SessionTimeout'
+import './globals.css'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
