@@ -1,3 +1,4 @@
+import SessionTimeout from '@/components/SessionTimeout'
 'use client'
 import './globals.css'
 import { useState, useEffect, Suspense } from 'react'
@@ -48,7 +49,7 @@ function Sidebar() {
           <span className="w-6 text-center text-lg">🗺️</span>{open && <span className="text-sm">Routes</span>}
         </Link>
         <Link href="/clients" className={`flex items-center gap-3 px-3 py-2 hover:bg-gray-800 ${isActive('/clients')}`} onClick={() => window.innerWidth < 768 && setOpen(false)}>
-          <span className="w-6 text-center text-lg">👤</span>{open && <span className="text-sm">Clients</span>}
+          <span className="w-6 text-center text-lg">👥</span>{open && <span className="text-sm">Clients</span>}
         </Link>
         <Link href="/settings" className={`flex items-center gap-3 px-3 py-2 hover:bg-gray-800 ${isActive('/settings')}`} onClick={() => window.innerWidth < 768 && setOpen(false)}>
           <span className="w-6 text-center text-lg">⚙️</span>{open && <span className="text-sm">Settings</span>}
@@ -74,6 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="bg-gray-50">
+        <SessionTimeout />
         <div className="flex min-h-screen">
           <Suspense fallback={<div className="w-14 bg-black" />}>
             <Sidebar />
