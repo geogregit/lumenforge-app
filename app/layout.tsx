@@ -1,5 +1,5 @@
-import SessionTimeout from '@/components/SessionTimeout'
 'use client'
+import SessionTimeout from '@/components/SessionTimeout'
 import './globals.css'
 import { useState, useEffect, Suspense } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
