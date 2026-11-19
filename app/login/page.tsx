@@ -25,15 +25,15 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <div className="flex justify-center mb-4">
-          <img src="/logo.png" alt="Allayabode" className="h-12" />
+        <div className="flex justify-center mb-6">
+          <img src="/logo.png" alt="Allayabode" className="h-16 w-auto object-contain" />
         </div>
         <h1 className="text-2xl font-semibold text-gray-900 mb-6 text-center">ALLAYABODE</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className="w-full p-3 border rounded" required />
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" className="w-full p-3 border rounded" required />
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className="w-full p-3 border rounded text-gray-900" required />
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" className="w-full p-3 border rounded text-gray-900" required />
           <button type="submit" className="w-full bg-black text-white p-3 rounded font-medium">
             {mode === 'login' ? 'Sign In' : 'Create Account'}
           </button>
