@@ -7,7 +7,7 @@ const TIMEOUT_MS = 30 * 60 * 1000 // 30 minutes
 
 export default function SessionTimeout() {
   const router = useRouter()
-  const timeoutRef = useRef<NodeJS.Timeout>()
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const supabase = createClient()
 
   const resetTimer = () => {
