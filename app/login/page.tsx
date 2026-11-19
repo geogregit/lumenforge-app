@@ -28,7 +28,7 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white w-full max-w-sm p-8 shadow-sm">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-6 text-center">LumenForge</h1>
+        <h1 className="text-2xl font-semibold text-gray-900 mb-6 text-center">Allayabode</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>

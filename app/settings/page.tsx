@@ -51,7 +51,6 @@ export default function Settings() {
   }
 
   function connectApp(app: string) {
-    // Self-service connection — opens the provider’s login
     const urls: Record<string, string> = {
       'Outlook': 'https://login.microsoftonline.com/',
       'Google Calendar': 'https://accounts.google.com/',
@@ -112,7 +111,7 @@ export default function Settings() {
         <section className="bg-white border rounded-lg overflow-hidden">
           <div className="bg-gray-700 text-white px-4 py-3 font-medium">Security Methods</div>
           <div className="p-5 space-y-4 text-sm">
-            <p className="text-gray-600">Manage how you sign in to LumenForge.</p>
+            <p className="text-gray-600">Manage how you sign in to Allayabode</p>
             <div className="flex justify-between items-center border-t pt-3">
               <span>Password</span>
               <button onClick={() => window.location.href = 'mailto:green.george@live.com?subject=Password Reset'} className="border px-3 py-1 rounded text-xs">Reset</button>

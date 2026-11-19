@@ -1,7 +1,7 @@
 'use client'
 export default function Notifications() {
   const notifications = [
-    { id: 1, title: 'New version available', message: 'LumenForge has been updated with a cleaner dashboard and new features.', time: 'Just now', type: 'update' },
+    { id: 1, title: 'New version available', message: 'Allayabode has been updated with a cleaner dashboard and new features.', time: 'Just now', type: 'update' },
     { id: 2, title: 'App request approved', message: 'Your request for Slack has been approved and will appear on the dashboard soon.', time: '2 hours ago', type: 'request' },
     { id: 3, title: 'Suggestion received', message: 'Thanks for your feedback! We’re looking into it.', time: '1 day ago', type: 'suggestion' },
   ]
